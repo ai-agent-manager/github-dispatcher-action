@@ -1,0 +1,61 @@
+# .github/ai-skills.yml — Example 2 (install and run)
+#
+# The dispatcher reads this file, installs the listed skills, and runs
+# matched skills based on PR event triggers or `/ai run` comments.
+#
+# Use this format when:
+#   - You want skills to run automatically on PR open or new commits
+#   - You want code review or PR descriptions posted without manual invocation
+#   - You want commit-back skills (docs, tests) triggered by a human comment
+#
+# Supported triggers:
+#   pull_request.opened       — fires when a PR is first opened
+#   pull_request.synchronize  — fires when new commits are pushed to an open PR
+#   issue_comment.created     — fires when a human posts a `/ai run <skill>`
+#                               comment on the PR. The comment body names the
+#                               skill to run, so multiple skills can share
+#                               this trigger without firing each other.
+#
+# Autonomy levels:
+#   observe  — posts output as a PR comment, no code or metadata changes
+#   suggest  — updates PR metadata (e.g. PR description field), no code changes
+#   act      — commits changes back to the PR branch. Only ever fires from an
+#              explicit human `/ai run` comment, never on PR open or sync.
+#
+# Max budget per skill:
+#   Hard USD cap per skill run. Raise for skills that process large diffs
+#   or need deeper reasoning (e.g. architectural reviews). If the cap is
+#   hit mid-run, a warning is appended to the PR comment so truncation isn't
+#   silent.
+#
+# Note: Execution always uses Claude Code regardless of how many tools are
+# listed. The tools field controls where skills are installed for local use.
+
+tools:
+  - claude-code
+
+scope: repo
+
+# bundle-version: 1.3.0  # optional — omit to always use latest
+
+skills:
+  # observe — runs on PR open and on every new commit (re-review)
+  - name: code-review-backend
+    on: [pull_request.opened, pull_request.synchronize]
+    autonomy: observe
+    max_budget_usd: 5 # optional — defaults to 5 if omitted
+
+  # suggest — generates the PR description when the PR is first opened.
+  # Not on synchronize: that would overwrite any manual edits the author
+  # or reviewers added.
+  - name: pr-description-generator
+    on: [pull_request.opened]
+    autonomy: suggest
+    max_budget_usd: 5
+
+  # act — commits doc updates back to the PR branch.
+  # Trigger from a PR comment:  /ai run documentation-generator
+  - name: documentation-generator
+    on: [issue_comment.created]
+    autonomy: act
+    max_budget_usd: 10

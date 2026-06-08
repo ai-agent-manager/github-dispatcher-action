@@ -1,0 +1,46 @@
+name: "AI Skills Dispatcher"
+description: "Runs AI agent skills against pull request events using Claude Code and agent-manager."
+author: "ai-agent-manager"
+branding:
+  icon: "cpu"
+  color: "purple"
+
+inputs:
+  config-path:
+    description: "Path to the ai-skills.yml config file in the consumer repo."
+    required: false
+    default: ".github/ai-skills.yml"
+
+  bundle-base-url:
+    description: "Skill Bundle base URL. Accessible location where skill bundles are hosted (e.g. https://bootstrap.example.com)."
+    required: true
+
+  anthropic-auth-token:
+    description: "Anthropic API token used to run skills via Claude Code."
+    required: true
+
+  anthropic-base-url:
+    description: "Override the Anthropic API base URL (e.g. for a proxy). Leave empty for the default."
+    required: false
+    default: ""
+
+  anthropic-model:
+    description: "Override the default model (e.g. 'opusplan'). Leave empty for Claude Code's default."
+    required: false
+    default: ""
+
+  github-token:
+    description: "GitHub token used to post PR comments / update PR description."
+    required: true
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args: [
+    "--config-path", "${{ inputs.config-path }}",
+    "--bundle-base-url", "${{ inputs.bundle-base-url }}",
+    "--anthropic-auth-token", "${{ inputs.anthropic-auth-token }}",
+    "--anthropic-base-url", "${{ inputs.anthropic-base-url }}",
+    "--anthropic-model", "${{ inputs.anthropic-model }}",
+    "--github-token", "${{ inputs.github-token }}"
+    ]

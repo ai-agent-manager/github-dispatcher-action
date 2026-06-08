@@ -1,0 +1,45 @@
+# .github/ai-skills.yml — Example 1 (install only)
+#
+# The dispatcher reads this file and installs the listed skills onto the
+# GitHub Actions runner. Skills are available for subsequent workflow steps
+# but are not executed automatically.
+#
+# Use this format when:
+#   - You want skills available on the runner for manual invocation
+#   - You are not yet ready for automatic skill execution on PR events
+#   - You want to test skill installation before enabling 'Example 2'
+#
+# Field reference:
+#   tools   — one or more AI coding tools to install skills for
+#             Options: claude-code | devin | github-copilot | cursor
+#             Note: execution in GitHub Actions always uses Claude Code
+#             regardless of how many tools are listed. The tools field
+#             controls where skills are installed for local developer use.
+#
+#   scope   — where to install skills on the runner
+#             Options: repo (default) | system
+#
+#   bundle-version — specific bundle version to install from
+#             Omit to always use the latest published version
+#
+#   skills  — list of skill names to install
+#             Names must match exactly what is published within the bundle, 
+#             including case sensitivity. If a listed skill isn't found in 
+#             the bundle, installation will skip it with a warning but 
+#             continue for other skills.
+
+tools:
+  - claude-code
+  # - github-copilot
+  # - devin
+  # - cursor
+
+scope: repo
+
+# bundle-version: 1.3.0  # optional — omit to always use latest
+
+skills:
+  - code-review-backend
+  - rest-api-generator
+  # - hld-architecture-generator
+  # Add more skills...

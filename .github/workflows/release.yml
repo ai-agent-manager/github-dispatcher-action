@@ -1,0 +1,142 @@
+name: Release
+run-name: Release ${{ inputs.release_type }} from main
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: Select the semantic version bump to release.
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Create release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Enforce main branch
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "This workflow only releases from main. Current ref: ${GITHUB_REF}"
+            exit 1
+          fi
+
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump release version
+        id: version
+        run: |
+          npm version "${{ inputs.release_type }}" --no-git-tag-version
+          version="$(node -p "require('./package.json').version")"
+          tag="v${version}"
+          major_tag="v$(node -p "require('./package.json').version.split('.')[0]")"
+
+          if git rev-parse --verify "refs/tags/${tag}" >/dev/null 2>&1; then
+            echo "Tag ${tag} already exists"
+            exit 1
+          fi
+
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "major_tag=${major_tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate release candidate
+        run: npm run validate
+
+      - name: Commit release version files
+        run: |
+          git add package.json package-lock.json
+          git commit -m "chore(release): ${{ steps.version.outputs.tag }}"
+
+      - name: Create release tag
+        run: |
+          git tag -a "${{ steps.version.outputs.tag }}" -m "Release ${{ steps.version.outputs.tag }}"
+
+      - name: Push release commit and tag
+        run: |
+          git push origin HEAD:main
+          git push origin "refs/tags/${{ steps.version.outputs.tag }}"
+
+      - name: Wait for tag propagation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            if gh api "repos/${{ github.repository }}/git/ref/tags/${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+              echo "Tag ${{ steps.version.outputs.tag }} is visible to the GitHub API."
+              exit 0
+            fi
+
+            echo "Tag ${{ steps.version.outputs.tag }} not visible yet (attempt ${attempt}/6)."
+            sleep 5
+          done
+
+          echo "Tag ${{ steps.version.outputs.tag }} never became visible to the GitHub API."
+          exit 1
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${{ steps.version.outputs.tag }}" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "Release ${{ steps.version.outputs.tag }} already exists."
+            exit 0
+          fi
+
+          for attempt in 1 2 3 4 5; do
+            if gh release create "${{ steps.version.outputs.tag }}" \
+              --repo "${{ github.repository }}" \
+              --title "${{ steps.version.outputs.tag }}" \
+              --generate-notes \
+              --verify-tag; then
+              exit 0
+            fi
+
+            if gh release view "${{ steps.version.outputs.tag }}" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+              echo "Release ${{ steps.version.outputs.tag }} exists after retry attempt ${attempt}."
+              exit 0
+            fi
+
+            echo "Release creation failed on attempt ${attempt}/5. Retrying in 10 seconds..."
+            sleep 10
+          done
+
+          echo "Failed to create GitHub release for ${{ steps.version.outputs.tag }} after retries."
+          exit 1
+
+      - name: Update moving tags
+        run: |
+          git tag -fa latest -m "Latest release" HEAD
+          git tag -fa "${{ steps.version.outputs.major_tag }}" -m "Major release line ${{ steps.version.outputs.major_tag }}" HEAD
+          git push origin refs/tags/latest --force
+          git push origin "refs/tags/${{ steps.version.outputs.major_tag }}" --force
