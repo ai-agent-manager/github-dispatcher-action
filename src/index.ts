@@ -49,6 +49,13 @@ function applyClaudeCodeEnv(inputs: ActionInputs): void {
 
 async function run(): Promise<void> {
   try {
+    // Fix git "dubious ownership" error in Docker containers.
+    // GitHub Actions mounts /github/workspace with different ownership than
+    // the container user, causing git to refuse operations. This must run at
+    // container runtime (not Dockerfile build time) since the workspace doesn't
+    // exist until the container starts.
+    execSync('git config --global --add safe.directory /github/workspace');
+
     const inputs: ActionInputs = {
       configPath: core.getInput("config-path") || ".github/ai-skills.yml",
       bundleBaseUrl: core.getInput("bundle-base-url", { required: true }),
