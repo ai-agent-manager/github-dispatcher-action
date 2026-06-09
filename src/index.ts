@@ -49,14 +49,9 @@ function applyClaudeCodeEnv(inputs: ActionInputs): void {
 
 async function run(): Promise<void> {
   try {
-    // Fix git "dubious ownership" error in Docker containers.
-    // GitHub Actions mounts /github/workspace with different ownership than
-    // the container user, causing git to refuse operations. This must run at
-    // container runtime (not Dockerfile build time) since the workspace doesn't
-    // exist until the container starts.
-    //
-    // Also, the node user can't write to /github/home/.gitconfig, so we point
-    // git to a writable location in /tmp.
+    // Configure git for Docker container environment:
+    // 1. Safe directory: /github/workspace has different ownership than node user (UID 1001)
+    // 2. Config location: node user can't write to /github/home/.gitconfig
     process.env.GIT_CONFIG_GLOBAL = '/tmp/.gitconfig';
     execSync('git config --global --add safe.directory /github/workspace');
 
@@ -103,8 +98,7 @@ async function run(): Promise<void> {
     }
 
     // 1. Install skills declared in config.
-    // Note: Claude Code CLI is pre-installed in the Docker image to avoid
-    // permission issues when running as a non-root user.
+    // Claude Code CLI is pre-installed in Dockerfile (node user can't npm install -g)
     await installSkills(inputs.configPath, inputs.bundleBaseUrl);
 
     // 2. Decide which skills should run for this event.

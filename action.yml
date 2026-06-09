@@ -36,6 +36,8 @@ inputs:
 runs:
   using: 'docker'
   image: 'Dockerfile'
+  # Docker actions require explicit env mapping (use UNDERSCORES, not hyphens)
+  # @actions/core's getInput() converts "bundle-base-url" → INPUT_BUNDLE_BASE_URL
   env:
     INPUT_CONFIG_PATH: ${{ inputs.config-path }}
     INPUT_BUNDLE_BASE_URL: ${{ inputs.bundle-base-url }}

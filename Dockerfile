@@ -3,9 +3,8 @@ FROM node:24-alpine
 # Install git and GitHub CLI (required by dispatcher code)
 RUN apk add --no-cache git github-cli
 
-# Install Claude Code CLI globally (as root, before switching to non-root user)
-# The runtime code also calls `npm install -g @anthropic-ai/claude-code`, but we
-# pre-install it here to avoid permission issues when running as the node user.
+# Install Claude Code CLI globally as root (before switching to non-root user)
+# Must be pre-installed because the node user lacks permission to install globally
 RUN npm install -g @anthropic-ai/claude-code
 
 COPY . /src
@@ -24,5 +23,5 @@ RUN deluser --remove-home node && \
 RUN chown -R node:node /src
 USER node
 
-# GitHub Actions mounts the consumer's workspace at /github/workspace
+# Use absolute path because GitHub Actions sets working directory to /github/workspace
 CMD [ "node", "/src/dist/index.js" ]
