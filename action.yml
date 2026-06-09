@@ -36,11 +36,3 @@ inputs:
 runs:
   using: 'docker'
   image: 'Dockerfile'
-  args: [
-    "--config-path", "${{ inputs.config-path }}",
-    "--bundle-base-url", "${{ inputs.bundle-base-url }}",
-    "--anthropic-auth-token", "${{ inputs.anthropic-auth-token }}",
-    "--anthropic-base-url", "${{ inputs.anthropic-base-url }}",
-    "--anthropic-model", "${{ inputs.anthropic-model }}",
-    "--github-token", "${{ inputs.github-token }}"
-    ]
