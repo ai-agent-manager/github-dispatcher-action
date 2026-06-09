@@ -37,9 +37,9 @@ runs:
   using: 'docker'
   image: 'Dockerfile'
   env:
-    INPUT_CONFIG-PATH: ${{ inputs.config-path }}
-    INPUT_BUNDLE-BASE-URL: ${{ inputs.bundle-base-url }}
-    INPUT_ANTHROPIC-AUTH-TOKEN: ${{ inputs.anthropic-auth-token }}
-    INPUT_ANTHROPIC-BASE-URL: ${{ inputs.anthropic-base-url }}
-    INPUT_ANTHROPIC-MODEL: ${{ inputs.anthropic-model }}
-    INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
+    INPUT_CONFIG_PATH: ${{ inputs.config-path }}
+    INPUT_BUNDLE_BASE_URL: ${{ inputs.bundle-base-url }}
+    INPUT_ANTHROPIC_AUTH_TOKEN: ${{ inputs.anthropic-auth-token }}
+    INPUT_ANTHROPIC_BASE_URL: ${{ inputs.anthropic-base-url }}
+    INPUT_ANTHROPIC_MODEL: ${{ inputs.anthropic-model }}
+    INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
