@@ -9,7 +9,7 @@ import * as github from "@actions/github";
 import { runAll } from "./dispatcher.js";
 import { shouldProcessEvent } from "./event-filter.js";
 import { filterSkillsFromFile } from "./filter-skills.js";
-import { installClaudeCode, installSkills } from "./install.js";
+import { installSkills } from "./install.js";
 import { parseCommand } from "./parse-command.js";
 import type { EventPayload } from "./types.js";
 
@@ -98,8 +98,9 @@ async function run(): Promise<void> {
       core.info(`[command] Requested skill: ${requestedSkill}`);
     }
 
-    // 1. Install the runtime: Claude Code CLI + the skills declared in config.
-    await installClaudeCode();
+    // 1. Install skills declared in config.
+    // Note: Claude Code CLI is pre-installed in the Docker image to avoid
+    // permission issues when running as a non-root user.
     await installSkills(inputs.configPath, inputs.bundleBaseUrl);
 
     // 2. Decide which skills should run for this event.
