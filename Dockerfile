@@ -13,6 +13,12 @@ WORKDIR /src
 RUN npm install
 RUN npm run build
 
+# Modify the node user to UID 1001 to match GitHub Actions runner
+# This ensures the node user can read/write files in /github/workspace
+RUN deluser --remove-home node && \
+    addgroup -g 1001 node && \
+    adduser -D -u 1001 -G node node
+
 # Switch to non-root user
 # Required: Claude Code refuses --dangerously-skip-permissions when running as root
 RUN chown -R node:node /src

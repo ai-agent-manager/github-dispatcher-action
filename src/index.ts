@@ -54,6 +54,10 @@ async function run(): Promise<void> {
     // the container user, causing git to refuse operations. This must run at
     // container runtime (not Dockerfile build time) since the workspace doesn't
     // exist until the container starts.
+    //
+    // Also, the node user can't write to /github/home/.gitconfig, so we point
+    // git to a writable location in /tmp.
+    process.env.GIT_CONFIG_GLOBAL = '/tmp/.gitconfig';
     execSync('git config --global --add safe.directory /github/workspace');
 
     const inputs: ActionInputs = {
