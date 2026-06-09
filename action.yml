@@ -36,11 +36,12 @@ inputs:
 runs:
   using: 'docker'
   image: 'Dockerfile'
-  args: [
-    "--config-path", "${{ inputs.config-path }}",
-    "--bundle-base-url", "${{ inputs.bundle-base-url }}",
-    "--anthropic-auth-token", "${{ inputs.anthropic-auth-token }}",
-    "--anthropic-base-url", "${{ inputs.anthropic-base-url }}",
-    "--anthropic-model", "${{ inputs.anthropic-model }}",
-    "--github-token", "${{ inputs.github-token }}"
-    ]
+  # Docker actions require explicit env mapping (use UNDERSCORES, not hyphens)
+  # @actions/core's getInput() converts "bundle-base-url" → INPUT_BUNDLE_BASE_URL
+  env:
+    INPUT_CONFIG_PATH: ${{ inputs.config-path }}
+    INPUT_BUNDLE_BASE_URL: ${{ inputs.bundle-base-url }}
+    INPUT_ANTHROPIC_AUTH_TOKEN: ${{ inputs.anthropic-auth-token }}
+    INPUT_ANTHROPIC_BASE_URL: ${{ inputs.anthropic-base-url }}
+    INPUT_ANTHROPIC_MODEL: ${{ inputs.anthropic-model }}
+    INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}

@@ -9,7 +9,7 @@ import * as github from "@actions/github";
 import { runAll } from "./dispatcher.js";
 import { shouldProcessEvent } from "./event-filter.js";
 import { filterSkillsFromFile } from "./filter-skills.js";
-import { installClaudeCode, installSkills } from "./install.js";
+import { installSkills } from "./install.js";
 import { parseCommand } from "./parse-command.js";
 import type { EventPayload } from "./types.js";
 
@@ -49,6 +49,12 @@ function applyClaudeCodeEnv(inputs: ActionInputs): void {
 
 async function run(): Promise<void> {
   try {
+    // Configure git for Docker container environment:
+    // 1. Safe directory: /github/workspace has different ownership than node user (UID 1001)
+    // 2. Config location: node user can't write to /github/home/.gitconfig
+    process.env.GIT_CONFIG_GLOBAL = '/tmp/.gitconfig';
+    execSync('git config --global --add safe.directory /github/workspace');
+
     const inputs: ActionInputs = {
       configPath: core.getInput("config-path") || ".github/ai-skills.yml",
       bundleBaseUrl: core.getInput("bundle-base-url", { required: true }),
@@ -91,8 +97,8 @@ async function run(): Promise<void> {
       core.info(`[command] Requested skill: ${requestedSkill}`);
     }
 
-    // 1. Install the runtime: Claude Code CLI + the skills declared in config.
-    await installClaudeCode();
+    // 1. Install skills declared in config.
+    // Claude Code CLI is pre-installed in Dockerfile (node user can't npm install -g)
     await installSkills(inputs.configPath, inputs.bundleBaseUrl);
 
     // 2. Decide which skills should run for this event.
