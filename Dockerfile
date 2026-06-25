@@ -3,9 +3,9 @@ FROM node:24-alpine
 # Install git and GitHub CLI (required by dispatcher code)
 RUN apk add --no-cache git github-cli
 
-# Install Claude Code CLI globally as root (before switching to non-root user)
+# Install AI tool CLIs globally as root (before switching to non-root user)
 # Must be pre-installed because the node user lacks permission to install globally
-RUN npm install -g @anthropic-ai/claude-code
+RUN npm install -g @anthropic-ai/claude-code @github/copilot
 
 COPY . /src
 WORKDIR /src

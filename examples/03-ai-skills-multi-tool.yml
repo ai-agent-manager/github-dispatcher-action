@@ -1,0 +1,52 @@
+# .github/ai-skills.yml — Example 3 (multi-tool usage)
+#
+# The dispatcher supports multiple AI tools. Set the tool once in the
+# tools list — all skills inherit it automatically. Individual skills
+# can override with a tool: field if needed.
+#
+# Supported tools:
+#   claude-code      — Claude Code CLI (@anthropic-ai/claude-code)
+#   github-copilot   — GitHub Copilot CLI (@github/copilot)
+#
+# Budget/limit fields by tool:
+#   Claude Code:     max_budget_usd (dollar cap, default: 5)
+#   GitHub Copilot:  max_iterations (iteration count, default: 10)
+
+# Example 1: All skills use GitHub Copilot
+tools:
+  - github-copilot
+
+scope: repo
+
+skills:
+  - name: code-review-backend
+    on: [pull_request.opened, pull_request.synchronize]
+    autonomy: observe
+    max_iterations: 15  # Copilot-specific budget
+
+  - name: pr-description-generator
+    on: [pull_request.opened]
+    autonomy: suggest
+    max_iterations: 10
+
+---
+
+# Example 2: Mixed tool usage with per-skill override
+tools:
+  - claude-code  # Default tool for all skills
+
+scope: repo
+
+skills:
+  # Uses Claude Code (default from tools[0])
+  - name: code-review-backend
+    on: [pull_request.opened, pull_request.synchronize]
+    autonomy: observe
+    max_budget_usd: 7
+
+  # Override: use Copilot for this specific skill
+  - name: security-audit
+    on: [pull_request.opened]
+    autonomy: observe
+    tool: github-copilot
+    max_iterations: 20

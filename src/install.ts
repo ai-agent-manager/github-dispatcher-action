@@ -9,18 +9,6 @@ import * as exec from "@actions/exec";
 import type { SkillsConfig } from "./types.js";
 
 /**
- * Install the Claude Code CLI globally so the dispatcher can invoke it.
- *
- * This runs on every action invocation. It's the price of a self-contained
- * action — consumers don't need to add an install step to their workflow.
- */
-async function installClaudeCode(): Promise<void> {
-  core.startGroup("Install Claude Code");
-  await exec.exec("npm", ["install", "-g", "@anthropic-ai/claude-code"]);
-  core.endGroup();
-}
-
-/**
  * Read the consumer's ai-skills.yml and use agent-manager to install the
  * listed skills onto the runner.
  *
@@ -58,4 +46,4 @@ async function installSkills(configPath: string, bundleBaseUrl: string): Promise
   core.endGroup();
 }
 
-export { installClaudeCode, installSkills };
+export { installSkills };

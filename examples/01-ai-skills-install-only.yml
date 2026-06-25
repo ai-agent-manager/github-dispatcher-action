@@ -12,9 +12,8 @@
 # Field reference:
 #   tools   — one or more AI coding tools to install skills for
 #             Options: claude-code | devin | github-copilot | cursor
-#             Note: execution in GitHub Actions always uses Claude Code
-#             regardless of how many tools are listed. The tools field
-#             controls where skills are installed for local developer use.
+#             The first tool in the list (tools[0]) is used for skill execution.
+#             Additional tools control where skills are installed for local use.
 #
 #   scope   — where to install skills on the runner
 #             Options: repo (default) | system

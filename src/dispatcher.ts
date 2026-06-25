@@ -6,6 +6,7 @@ import { execSync } from "node:child_process";
 import * as core from "@actions/core";
 
 import type { MatchedSkill } from "./types.js";
+import { getAdapter } from "./tools/index.js";
 
 interface RunSkillResult {
   output: string;
@@ -17,38 +18,34 @@ interface ExecSyncError extends Error {
   stderr?: Buffer | string;
 }
 
-// Claude Code signals budget exhaustion by exiting 0 with this string
-// written to stdout. The probe in `probe-budget.js` (local test) confirmed
-// the exact format: "Error: Exceeded USD budget (X.XX)".
-const BUDGET_HIT_PATTERN = /Exceeded USD budget/i;
-
-const DEFAULT_BUDGET_USD = 5;
-
 /**
- * Run Claude Code in headless mode against a single skill, returning the
- * skill's output plus a flag indicating whether the budget cap was hit.
+ * Run an AI tool in headless mode against a single skill, returning the
+ * skill's output plus a flag indicating whether the budget/iteration cap was hit.
  *
  * If the skill genuinely fails (network, etc.) we return null so the caller
  * can skip it without poisoning the rest of the run.
  */
 function runSkill(skill: MatchedSkill, diff: string): RunSkillResult | null {
-  const budget = skill.max_budget_usd ?? DEFAULT_BUDGET_USD;
+  const adapter = getAdapter(skill.tool);
   const prompt = `Use the ${skill.name} skill. Here is the diff: ${diff}`;
 
   const promptPath = path.join(os.tmpdir(), "prompt.txt");
   fs.writeFileSync(promptPath, prompt);
 
+  const command = adapter.buildCommand({ skill, promptPath });
+
   let output: string;
   let budgetHit = false;
 
   try {
-    output = execSync(`claude -p --dangerously-skip-permissions --max-budget-usd ${budget} "$(cat ${promptPath})"`, {
+    output = execSync(command, {
       encoding: "utf-8",
       stdio: ["inherit", "pipe", "pipe"],
     });
 
-    // Budget exhaustion exits 0 with the error on stdout — check explicitly.
-    if (BUDGET_HIT_PATTERN.test(output)) {
+    // Check if budget/iteration limit was hit (tool-specific detection)
+    const result = adapter.detectBudgetHit(output, "");
+    if (result.hit) {
       budgetHit = true;
       output = "";
     }
@@ -59,7 +56,8 @@ function runSkill(skill: MatchedSkill, diff: string): RunSkillResult | null {
     const stdout = execError.stdout?.toString() ?? "";
     const stderr = execError.stderr?.toString() ?? "";
 
-    if (BUDGET_HIT_PATTERN.test(stdout) || BUDGET_HIT_PATTERN.test(stderr)) {
+    const result = adapter.detectBudgetHit(stdout, stderr);
+    if (result.hit) {
       output = "";
       budgetHit = true;
     } else {
@@ -69,8 +67,8 @@ function runSkill(skill: MatchedSkill, diff: string): RunSkillResult | null {
   }
 
   if (budgetHit) {
-    output += `⚠️ **Review truncated** — the \`$${budget}\` budget cap was reached before \`${skill.name}\` finished. Raise \`max_budget_usd\` for this skill in \`.github/ai-skills.yml\` if you need a more complete review.`;
-    core.warning(`[run] ${skill.name} — budget cap ($${budget}) reached`);
+    output += adapter.formatBudgetWarning(skill);
+    core.warning(`[run] ${skill.name} — budget/iteration limit reached`);
   }
 
   return { output, budgetHit };
@@ -160,4 +158,4 @@ function runAll(matched: MatchedSkill[], diff: string, prNumber: number): void {
   }
 }
 
-export { runSkill, postResult, runAll, BUDGET_HIT_PATTERN };
+export { runSkill, postResult, runAll };
