@@ -34,7 +34,7 @@ test("buildCommand defaults max_iterations to 10", () => {
   assert.ok(cmd.includes("--max-autopilot-continues 10"));
 });
 
-test("buildCommand includes all required flags", () => {
+test("buildCommand includes required flags", () => {
   const cmd = adapter.buildCommand({
     skill: {
       name: "review",
@@ -44,10 +44,9 @@ test("buildCommand includes all required flags", () => {
     },
     promptPath: "/tmp/prompt.txt",
   });
-  assert.ok(cmd.includes("--yes"));
-  assert.ok(cmd.includes("--allow-all"));
-  assert.ok(cmd.includes("--no-ask-user"));
-  assert.ok(cmd.includes("--prompt"));
+  assert.ok(cmd.includes("-p") || cmd.includes("--prompt"));
+  assert.ok(cmd.includes("--autopilot"));
+  assert.ok(cmd.includes("--max-autopilot-continues"));
 });
 
 test("formatBudgetWarning includes skill name and iteration count", () => {

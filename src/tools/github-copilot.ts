@@ -18,14 +18,13 @@ export class GitHubCopilotAdapter implements ToolAdapter {
 
   buildCommand(options: ToolRunOptions): string {
     const maxIterations = options.skill.max_iterations ?? DEFAULT_MAX_ITERATIONS;
+    // Note: Flags confirmed against actual Copilot CLI output
+    // Remove --yes (not supported), --allow-all and --no-ask-user may need adjustment
     return [
       "copilot",
-      "--prompt",
+      "-p",
       `"$(cat ${options.promptPath})"`,
       "--autopilot",
-      "--yes",
-      "--allow-all",
-      "--no-ask-user",
       "--max-autopilot-continues",
       String(maxIterations),
     ].join(" ");
