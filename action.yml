@@ -15,6 +15,11 @@ inputs:
     description: "Skill Bundle base URL. Accessible location where skill bundles are hosted (e.g. https://bootstrap.example.com)."
     required: true
 
+  agent-manager-ref:
+    description: "npm version tag for @ai-agent-manager/cli (e.g. 0.17.0). Defaults to latest."
+    required: false
+    default: "latest"
+
   anthropic-auth-token:
     description: "Anthropic API token used to run skills via Claude Code. Required when using Claude Code tools."
     required: false
@@ -62,6 +67,7 @@ runs:
   env:
     INPUT_CONFIG_PATH: ${{ inputs.config-path }}
     INPUT_BUNDLE_BASE_URL: ${{ inputs.bundle-base-url }}
+    INPUT_AGENT_MANAGER_REF: ${{ inputs.agent-manager-ref }}
     INPUT_ANTHROPIC_AUTH_TOKEN: ${{ inputs.anthropic-auth-token }}
     INPUT_ANTHROPIC_BASE_URL: ${{ inputs.anthropic-base-url }}
     INPUT_ANTHROPIC_MODEL: ${{ inputs.anthropic-model }}

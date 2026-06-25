@@ -16,7 +16,11 @@ import type { SkillsConfig } from "./types.js";
  * that agent-manager doesn't care about, so we strip those out before
  * handing it the install config.
  */
-async function installSkills(configPath: string, bundleBaseUrl: string): Promise<void> {
+async function installSkills(
+  configPath: string,
+  bundleBaseUrl: string,
+  agentManagerRef = "latest",
+): Promise<void> {
   if (!fs.existsSync(configPath)) {
     throw new Error(`Config file not found: ${configPath}`);
   }
@@ -43,8 +47,11 @@ async function installSkills(configPath: string, bundleBaseUrl: string): Promise
   const installConfigPath = path.join(os.tmpdir(), "install-skills.yml");
   fs.writeFileSync(installConfigPath, yaml.dump(installConfig));
 
+  const cliSpec = `@ai-agent-manager/cli@${agentManagerRef.trim() || "latest"}`;
+  core.info(`Installing skills with ${cliSpec}`);
+
   core.startGroup("Install AI skills via agent-manager");
-  await exec.exec("npx", ["-y", "@ai-agent-manager/cli@latest", bundleBaseUrl, "--config", installConfigPath], {
+  await exec.exec("npx", ["-y", cliSpec, bundleBaseUrl, "--config", installConfigPath], {
     env: { ...process.env, DISABLE_TELEMETRY: "1" },
   });
   core.endGroup();

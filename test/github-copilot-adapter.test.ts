@@ -83,6 +83,9 @@ test("applyEnv throws when copilot-token is missing", () => {
         anthropicModel: "",
         githubToken: "ghs_xxx",
         copilotToken: "",
+        litellmBaseUrl: "",
+        litellmApiKey: "",
+        piModel: "",
       }),
     /copilot-token is required/,
   );
@@ -97,6 +100,9 @@ test("applyEnv sets COPILOT_GITHUB_TOKEN when token is provided", () => {
       anthropicModel: "",
       githubToken: "ghs_xxx",
       copilotToken: "ghp_test123",
+      litellmBaseUrl: "",
+      litellmApiKey: "",
+      piModel: "",
     });
     assert.strictEqual(process.env.COPILOT_GITHUB_TOKEN, "ghp_test123");
   } finally {

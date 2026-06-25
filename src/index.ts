@@ -17,6 +17,7 @@ import { getAdapter } from "./tools/index.js";
 interface ActionInputs {
   configPath: string;
   bundleBaseUrl: string;
+  agentManagerRef: string;
   anthropicAuthToken: string;
   anthropicBaseUrl: string;
   anthropicModel: string;
@@ -39,6 +40,7 @@ async function run(): Promise<void> {
     const inputs: ActionInputs = {
       configPath: core.getInput("config-path") || ".github/ai-skills.yml",
       bundleBaseUrl: core.getInput("bundle-base-url", { required: true }),
+      agentManagerRef: core.getInput("agent-manager-ref") || "latest",
       anthropicAuthToken: core.getInput("anthropic-auth-token"),
       anthropicBaseUrl: core.getInput("anthropic-base-url"),
       anthropicModel: core.getInput("anthropic-model"),
@@ -84,7 +86,7 @@ async function run(): Promise<void> {
 
     // 1. Install skills declared in config.
     // Claude Code CLI is pre-installed in Dockerfile (node user can't npm install -g)
-    await installSkills(inputs.configPath, inputs.bundleBaseUrl);
+    await installSkills(inputs.configPath, inputs.bundleBaseUrl, inputs.agentManagerRef);
 
     // 2. Decide which skills should run for this event.
     const matched = filterSkillsFromFile(inputs.configPath, eventName, eventAction, requestedSkill);

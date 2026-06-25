@@ -80,6 +80,9 @@ test("applyEnv throws when anthropic-auth-token is missing", () => {
         anthropicModel: "",
         githubToken: "ghs_xxx",
         copilotToken: "",
+        litellmBaseUrl: "",
+        litellmApiKey: "",
+        piModel: "",
       }),
     /anthropic-auth-token is required/,
   );
@@ -94,6 +97,9 @@ test("applyEnv sets ANTHROPIC_AUTH_TOKEN when token is provided", () => {
       anthropicModel: "",
       githubToken: "ghs_xxx",
       copilotToken: "",
+      litellmBaseUrl: "",
+      litellmApiKey: "",
+      piModel: "",
     });
     assert.strictEqual(process.env.ANTHROPIC_AUTH_TOKEN, "sk-ant-test123");
   } finally {
