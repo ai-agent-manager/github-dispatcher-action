@@ -22,6 +22,9 @@ interface ActionInputs {
   anthropicModel: string;
   githubToken: string;
   copilotToken: string;
+  litellmBaseUrl: string;
+  litellmApiKey: string;
+  piModel: string;
 }
 
 
@@ -41,6 +44,9 @@ async function run(): Promise<void> {
       anthropicModel: core.getInput("anthropic-model"),
       githubToken: core.getInput("github-token", { required: true }),
       copilotToken: core.getInput("copilot-token"),
+      litellmBaseUrl: core.getInput("litellm-base-url"),
+      litellmApiKey: core.getInput("litellm-api-key"),
+      piModel: core.getInput("pi-model"),
     };
 
     const { eventName, payload } = github.context;
@@ -102,6 +108,9 @@ async function run(): Promise<void> {
         anthropicModel: inputs.anthropicModel,
         githubToken: inputs.githubToken,
         copilotToken: inputs.copilotToken,
+        litellmBaseUrl: inputs.litellmBaseUrl,
+        litellmApiKey: inputs.litellmApiKey,
+        piModel: inputs.piModel,
       });
     }
 

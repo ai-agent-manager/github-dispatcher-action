@@ -39,6 +39,21 @@ inputs:
     required: false
     default: ""
 
+  litellm-base-url:
+    description: "LiteLLM gateway base URL (e.g. https://litellm.example.com). Required when using pi tools."
+    required: false
+    default: ""
+
+  litellm-api-key:
+    description: "LiteLLM gateway API key. Required when using pi tools."
+    required: false
+    default: ""
+
+  pi-model:
+    description: "Default model for pi runs (e.g. litellm/claude-sonnet-4-6). Overridable per skill via model: in ai-skills.yml."
+    required: false
+    default: ""
+
 runs:
   using: 'docker'
   image: 'Dockerfile'
@@ -52,3 +67,6 @@ runs:
     INPUT_ANTHROPIC_MODEL: ${{ inputs.anthropic-model }}
     INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
     INPUT_COPILOT_TOKEN: ${{ inputs.copilot-token }}
+    INPUT_LITELLM_BASE_URL: ${{ inputs.litellm-base-url }}
+    INPUT_LITELLM_API_KEY: ${{ inputs.litellm-api-key }}
+    INPUT_PI_MODEL: ${{ inputs.pi-model }}

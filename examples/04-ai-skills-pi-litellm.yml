@@ -1,0 +1,43 @@
+# .github/ai-skills.yml — Example 4 (pi harness + LiteLLM gateway)
+#
+# Runs agent-manager skills through the pi.dev open harness, routing model
+# calls via a LiteLLM-compatible gateway.
+#
+# Prerequisites:
+#   - agent-manager with `agents` tool (installs skills to .agents/skills/)
+#   - GitHub Actions secret: LITELLM_API_KEY (e.g. sk-example-gateway-key)
+#   - Workflow inputs: litellm-base-url, litellm-api-key, pi-model
+#
+# Model selection:
+#   - Global default: pi-model action input (e.g. litellm/claude-sonnet-4-6)
+#   - Per-skill override: model: field below
+#   - Models are discovered from GET https://litellm.example.com/v1/models
+
+tools:
+  - agents
+
+scope: repo
+
+skills:
+  - name: code-review-backend
+    tool: pi
+    on: [pull_request.opened, pull_request.synchronize]
+    autonomy: observe
+    model: claude-sonnet-4-6
+
+  - name: pr-description-generator
+    tool: pi
+    on: [pull_request.opened]
+    autonomy: suggest
+    model: gpt-4o
+
+---
+# Example workflow snippet (consumer repo):
+#
+# - uses: ./.github/actions/dispatcher  # or your branch ref
+#   with:
+#     bundle-base-url: ${{ vars.BUNDLE_BASE_URL }}
+#     github-token: ${{ secrets.GITHUB_TOKEN }}
+#     litellm-base-url: https://litellm.example.com
+#     litellm-api-key: ${{ secrets.LITELLM_API_KEY }}
+#     pi-model: litellm/claude-sonnet-4-6

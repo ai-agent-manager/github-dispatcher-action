@@ -1,10 +1,12 @@
 import type { ToolAdapter } from "./types.js";
 import { ClaudeCodeAdapter } from "./claude-code.js";
 import { GitHubCopilotAdapter } from "./github-copilot.js";
+import { PiLiteLLMAdapter } from "./pi-litellm.js";
 
 const adapters: ReadonlyMap<string, ToolAdapter> = new Map<string, ToolAdapter>([
   ["claude-code", new ClaudeCodeAdapter()],
   ["github-copilot", new GitHubCopilotAdapter()],
+  ["pi", new PiLiteLLMAdapter()],
 ]);
 
 /**

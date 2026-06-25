@@ -39,6 +39,12 @@ export interface ToolEnvInputs {
   anthropicModel: string;
   githubToken: string;
   copilotToken: string;
+  /** LiteLLM gateway URL (e.g. https://litellm.example.com). */
+  litellmBaseUrl: string;
+  /** LiteLLM virtual key / gateway API key. */
+  litellmApiKey: string;
+  /** Default pi model when skill.model is unset (e.g. litellm/claude-sonnet-4-6). */
+  piModel: string;
 }
 
 /**

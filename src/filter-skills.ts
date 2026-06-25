@@ -102,6 +102,7 @@ function filterSkills(
       trigger: matchedTrigger,
       max_budget_usd: skill.max_budget_usd,
       max_iterations: skill.max_iterations,
+      model: skill.model,
       tool,
     });
   }

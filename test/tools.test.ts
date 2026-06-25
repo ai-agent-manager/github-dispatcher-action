@@ -14,6 +14,11 @@ test("getAdapter returns GitHubCopilotAdapter for 'github-copilot'", () => {
   assert.strictEqual(adapter.name, "github-copilot");
 });
 
+test("getAdapter returns PiLiteLLMAdapter for 'pi'", () => {
+  const adapter = getAdapter("pi");
+  assert.strictEqual(adapter.name, "pi");
+});
+
 test("getAdapter throws for unknown tool", () => {
   assert.throws(() => getAdapter("unknown-tool"), /Unknown tool/);
   assert.throws(() => getAdapter("unknown-tool"), /Supported tools:/);
