@@ -38,6 +38,7 @@ export interface ToolEnvInputs {
   anthropicBaseUrl: string;
   anthropicModel: string;
   githubToken: string;
+  copilotToken: string;
 }
 
 /**

@@ -10,10 +10,17 @@ export class GitHubCopilotAdapter implements ToolAdapter {
   readonly name = "github-copilot";
 
   applyEnv(inputs: ToolEnvInputs): void {
+    if (!inputs.copilotToken) {
+      throw new Error(
+        "copilot-token is required when using github-copilot tools. " +
+          "Must be a user PAT with Copilot access, not the default GITHUB_TOKEN. " +
+          "Create a fine-grained PAT with 'Copilot Requests' permission and set it in your workflow.",
+      );
+    }
+
     // Copilot checks: COPILOT_GITHUB_TOKEN > GH_TOKEN > GITHUB_TOKEN
-    // GH_TOKEN is already set by the dispatcher for gh CLI usage.
-    // Set COPILOT_GITHUB_TOKEN explicitly so Copilot picks it up first.
-    process.env.COPILOT_GITHUB_TOKEN = inputs.githubToken;
+    // Set COPILOT_GITHUB_TOKEN explicitly with the user PAT
+    process.env.COPILOT_GITHUB_TOKEN = inputs.copilotToken;
   }
 
   buildCommand(options: ToolRunOptions): string {

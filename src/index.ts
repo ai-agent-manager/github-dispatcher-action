@@ -21,6 +21,7 @@ interface ActionInputs {
   anthropicBaseUrl: string;
   anthropicModel: string;
   githubToken: string;
+  copilotToken: string;
 }
 
 
@@ -39,6 +40,7 @@ async function run(): Promise<void> {
       anthropicBaseUrl: core.getInput("anthropic-base-url"),
       anthropicModel: core.getInput("anthropic-model"),
       githubToken: core.getInput("github-token", { required: true }),
+      copilotToken: core.getInput("copilot-token"),
     };
 
     const { eventName, payload } = github.context;
@@ -99,6 +101,7 @@ async function run(): Promise<void> {
         anthropicBaseUrl: inputs.anthropicBaseUrl,
         anthropicModel: inputs.anthropicModel,
         githubToken: inputs.githubToken,
+        copilotToken: inputs.copilotToken,
       });
     }
 
