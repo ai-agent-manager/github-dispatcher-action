@@ -27,11 +27,15 @@ async function installSkills(configPath: string, bundleBaseUrl: string): Promise
     throw new Error(`"skills" must be a list in ${configPath}`);
   }
 
-  // Agent-manager wants just the names — drop trigger/autonomy/budget fields.
+  // Agent-manager wants just the names — drop trigger/autonomy/budget/tool fields.
   const names = config.skills.map((skill) => (typeof skill === "string" ? skill : skill.name));
 
+  // IMPORTANT: Always install to the shared .claude/skills/ location.
+  // Both Claude Code and Copilot CLI can read from this directory (it's an open standard).
+  // We force tools: ["claude-code"] here to make agent-manager use .claude/skills/,
+  // but the actual tool per skill is resolved later by filterSkills().
   const installConfig = {
-    tools: config.tools,
+    tools: ["claude-code"], // Force shared location, regardless of actual tools used
     scope: config.scope,
     skills: names,
   };
