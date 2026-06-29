@@ -10,8 +10,8 @@ Currently supported tools:
 
 Output is posted as a PR comment, used to update the PR description, or committed back to the PR branch depending on skill autonomy.
 
-GitHub Copilot limitation:
-- The only Copilot-specific requirement is `copilot-token`: it must be a fine-grained user PAT with Copilot access (not the default `GITHUB_TOKEN`).
+> [!WARNING]
+> `copilot-token` must be a fine-grained GitHub user PAT with Copilot access. Classic tokens are not supported.
 
 ## Usage
 
@@ -84,7 +84,7 @@ See full consumer examples:
 | `anthropic-base-url`   | no       | _(Anthropic default)_   | Override the Anthropic API base URL — useful when routing through a proxy.                                      |
 | `anthropic-model`      | no       | _(Claude Code default)_ | Override the default model.                                                                                     |
 | `github-token`         | yes      | —                       | Token used to post PR comments and edit PR descriptions.                                                        |
-| `copilot-token`        | no       | —                       | Fine-grained GitHub user PAT with Copilot access. Required for `github-copilot` skills; this is the only Copilot-specific limitation. |
+| `copilot-token`        | no       | —                       | Fine-grained GitHub user PAT with Copilot access only. Classic tokens are not supported. Required for `github-copilot` skills. |
 
 ## Skill manifest reference
 

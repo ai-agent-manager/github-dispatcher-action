@@ -35,7 +35,7 @@ inputs:
     required: true
 
   copilot-token:
-    description: "Fine-grained GitHub user PAT with Copilot access. Required when using GitHub Copilot tools; this is the only github-copilot-specific limitation. Must be a user token, not the default GITHUB_TOKEN."
+    description: "WARNING: Fine-grained GitHub user PAT with Copilot access only. Classic tokens are not supported. Required when using GitHub Copilot tools; this is the only github-copilot-specific limitation. Must be a user token, not the default GITHUB_TOKEN."
     required: false
     default: ""
 

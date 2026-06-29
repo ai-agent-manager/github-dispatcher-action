@@ -62,8 +62,6 @@ function runSkill(skill: MatchedSkill, diff: string): RunSkillResult | null {
       budgetHit = true;
     } else {
       core.error(`[run] ${skill.name} failed: ${execError.message}`);
-      if (stdout) core.error(`stdout: ${stdout}`);
-      if (stderr) core.error(`stderr: ${stderr}`);
       return null;
     }
   }
