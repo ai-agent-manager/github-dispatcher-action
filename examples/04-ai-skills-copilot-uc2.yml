@@ -1,0 +1,32 @@
+# .github/ai-skills.yml - UC2 sample config (Copilot tool)
+#
+# One skill at each autonomy level:
+#   observe -> posts a PR comment
+#   suggest -> updates PR description
+#   act     -> commits files to the PR branch (manual trigger)
+
+tools:
+  - github-copilot
+
+scope: repo
+
+skills:
+  - name: code-review-backend
+    on: [pull_request.opened, pull_request.synchronize]
+    autonomy: observe
+    max_iterations: 15
+
+  - name: pr-description-generator
+    on: [pull_request.opened] # avoid synchronize to preserve manual edits
+    autonomy: suggest
+    max_iterations: 10
+
+  - name: documentation-generator
+    on: [issue_comment.created] # manual: /ai run documentation-generator
+    autonomy: act
+    max_iterations: 20
+
+  - name: pr-description-generator
+    on: [issue_comment.created] # manual: /ai run pr-description-generator
+    autonomy: suggest
+    max_iterations: 10
