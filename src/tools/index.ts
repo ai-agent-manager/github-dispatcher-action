@@ -21,6 +21,20 @@ function getAdapter(toolName: string): ToolAdapter {
 }
 
 /**
+ * Check if tool name valid. Throws clear error with supported list if not.
+ */
+function validateToolName(toolName: string, source: string): void {
+  if (!adapters.has(toolName)) {
+    const known = [...adapters.keys()].join(", ");
+    throw new Error(
+      `Unknown tool "${toolName}" in ${source}. ` +
+      `Supported: ${known}. ` +
+      `Check for typos in your .github/ai-skills.yml`
+    );
+  }
+}
+
+/**
  * Resolve the effective tool for a skill.
  *
  * Priority:
@@ -36,5 +50,5 @@ function resolveToolName(skillTool: string | undefined, configTools: unknown): s
   return "claude-code";
 }
 
-export { getAdapter, resolveToolName };
+export { getAdapter, resolveToolName, validateToolName };
 export type { ToolAdapter } from "./types.js";

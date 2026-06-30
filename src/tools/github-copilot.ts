@@ -2,8 +2,7 @@ import type { ToolAdapter, ToolRunOptions, ToolEnvInputs, BudgetHitResult } from
 import type { MatchedSkill } from "../types.js";
 
 const DEFAULT_MAX_ITERATIONS = 10;
-// Copilot signals iteration limit via this pattern on stdout/stderr
-// (needs verification against actual CLI output — this is the expected format)
+// Detects when Copilot stopped because it hit the max iteration limit.
 const ITERATION_LIMIT_PATTERN = /reached maximum number of continuations/i;
 
 export class GitHubCopilotAdapter implements ToolAdapter {

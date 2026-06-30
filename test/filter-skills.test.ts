@@ -109,3 +109,24 @@ test("forwards max_iterations when set", () => {
   const matched = filterSkills(config, "pull_request", "opened");
   assert.strictEqual(matched[0]?.max_iterations, 20);
 });
+
+test("throws on invalid tool in skill.tool field", () => {
+  const config = {
+    skills: [{ name: "s1", on: ["pull_request.opened"], tool: "invalid-tool" }],
+  };
+  assert.throws(
+    () => filterSkills(config, "pull_request", "opened"),
+    /Unknown tool "invalid-tool" in skill "s1"/
+  );
+});
+
+test("throws on invalid tool in config.tools[0]", () => {
+  const config = {
+    tools: ["typo-tool"],
+    skills: [{ name: "s1", on: ["pull_request.opened"] }],
+  };
+  assert.throws(
+    () => filterSkills(config, "pull_request", "opened"),
+    /Unknown tool "typo-tool" in config\.tools\[0\]/
+  );
+});

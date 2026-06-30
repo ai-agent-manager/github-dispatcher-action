@@ -26,7 +26,7 @@ skills:
   - name: code-review-backend
     on: [pull_request.opened, pull_request.synchronize]
     autonomy: observe # posts output as a PR comment
-    max_budget_usd: 5 # optional — defaults to $5
+    max_iterations: 15 # optional — defaults to 10 for Copilot
 
   - name: pr-description-generator
     on: [pull_request.opened]
@@ -97,6 +97,8 @@ Each skill in `ai-skills.yml` accepts:
 | `autonomy`       | no       | `observe` (default) posts a PR comment. `suggest` updates the PR description. `act` commits changes to the PR branch.                                     |
 | `tool`           | no       | Optional per-skill override (`claude-code` or `github-copilot`). If omitted, the first entry from top-level `tools` is used.                             |
 | `max_budget_usd` | no       | Claude Code budget cap in USD. Defaults to `5` for Claude skills.
+| `max_iterations` | no       | GitHub Copilot iteration cap. Defaults to `10` for Copilot skills.                                                                                         |
+
 ## Development
 
 ```bash
