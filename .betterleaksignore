@@ -1,0 +1,6 @@
+# Findings audited and confirmed benign (repo hygiene audit, 2026-07).
+# Format: [commit:]path:rule-id:line
+
+# Placeholder gateway key ("sk-example-gateway-key" against litellm.example.com)
+# in a curl example from a since-deleted spike doc — history-only.
+6ab5950fd87dd00139bc5c776516f5337d9d42f3:docs/pi-litellm-spike.md:curl-auth-header:16
