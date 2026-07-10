@@ -7,6 +7,7 @@
   "main": "src/index.ts",
   "scripts": {
     "build": "ncc build src/index.ts -o dist --source-map --license licenses.txt",
+    "prepare": "git rev-parse --git-dir >/dev/null 2>&1 && git config core.hooksPath .githooks || true",
     "test": "tsx --test test/*.test.ts",
     "lint": "eslint src test",
     "lint:fix": "eslint src test --fix",
