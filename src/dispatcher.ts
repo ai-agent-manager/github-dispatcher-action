@@ -6,12 +6,8 @@ import { execSync } from "node:child_process";
 import * as core from "@actions/core";
 
 import type { MatchedSkill } from "./types.js";
+import type { ToolRunResult } from "./tools/types.js";
 import { getAdapter } from "./tools/index.js";
-
-interface RunSkillResult {
-  output: string;
-  budgetHit: boolean;
-}
 
 interface ExecSyncError extends Error {
   stdout?: Buffer | string;
@@ -25,7 +21,7 @@ interface ExecSyncError extends Error {
  * If the skill genuinely fails (network, etc.) we return null so the caller
  * can skip it without poisoning the rest of the run.
  */
-function runSkill(skill: MatchedSkill, diff: string): RunSkillResult | null {
+function runSkill(skill: MatchedSkill, diff: string): ToolRunResult | null {
   const adapter = getAdapter(skill.tool);
   const prompt = `Use the ${skill.name} skill. Here is the diff: ${diff}`;
 
@@ -68,7 +64,11 @@ function runSkill(skill: MatchedSkill, diff: string): RunSkillResult | null {
 
   if (budgetHit) {
     output += adapter.formatBudgetWarning(skill);
-    core.warning(`[run] ${skill.name} — budget/iteration limit reached`);
+    const budgetDetail =
+      skill.tool === "github-copilot"
+        ? `iteration limit (${skill.max_iterations ?? 10})`
+        : `budget cap ($${skill.max_budget_usd ?? 5})`;
+    core.warning(`[run] ${skill.name} — ${budgetDetail} reached`);
   }
 
   return { output, budgetHit };

@@ -13,6 +13,19 @@ Output is posted as a PR comment, used to update the PR description, or committe
 > [!WARNING]
 > `copilot-token` must be a fine-grained GitHub user PAT with Copilot access. Classic tokens are not supported.
 
+> [!CAUTION]
+> **Security: `act` autonomy + `issue_comment` triggers.**
+> When your workflow uses `contents: write` and triggers on `issue_comment`, any
+> content in a PR diff (including from forks) can influence the AI tool's output.
+> With `autonomy: act`, the tool commits changes using the workflow's write token.
+> This is a prompt-injection vector.
+>
+> Mitigations:
+> - Restrict the workflow to comments from users with `write` association or higher
+>   (e.g. `if: github.event.comment.author_association == 'MEMBER' || ...`).
+> - Avoid `act` autonomy on repos that accept PRs from forks.
+> - Consider running fork PRs in a read-only environment without `contents: write`.
+
 ## Usage
 
 Add `.github/ai-skills.yml` to your repo:
@@ -56,7 +69,7 @@ jobs:
           fetch-depth: 0
 
       - name: Checkout PR branch (comment events)
-        if: github.event_name == 'issue_comment'
+        if: github.event_name == 'issue_comment' && github.event.issue.pull_request
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh pr checkout ${{ github.event.issue.number }}
@@ -80,7 +93,7 @@ See full consumer examples:
 | ---------------------- | -------- | ----------------------- | --------------------------------------------------------------------------------------------------------------- |
 | `config-path`          | no       | `.github/ai-skills.yml` | Path to the skill manifest in your repo.                                                                        |
 | `bundle-base-url`      | yes      | —                       | Skill Bundle base URL. Accessible location where skill bundles are hosted (e.g. https://bootstrap.example.com). |
-| `anthropic-auth-token` | yes      | —                       | API token used to run skills via Claude Code.                                                                   |
+| `anthropic-auth-token` | no       | —                       | Anthropic API token. Required only when using `claude-code` skills.                                             |
 | `anthropic-base-url`   | no       | _(Anthropic default)_   | Override the Anthropic API base URL — useful when routing through a proxy.                                      |
 | `anthropic-model`      | no       | _(Claude Code default)_ | Override the default model.                                                                                     |
 | `github-token`         | yes      | —                       | Token used to post PR comments and edit PR descriptions.                                                        |

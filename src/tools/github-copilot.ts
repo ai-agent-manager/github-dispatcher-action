@@ -3,6 +3,9 @@ import type { MatchedSkill } from "../types.js";
 
 const DEFAULT_MAX_ITERATIONS = 10;
 // Detects when Copilot stopped because it hit the max iteration limit.
+// TODO: Verify exact CLI output — the Copilot CLI source is closed and the
+//       exact message text has not been confirmed. If this pattern doesn't
+//       match, cap-hits will silently look like successful runs.
 const ITERATION_LIMIT_PATTERN = /reached maximum number of continuations/i;
 
 export class GitHubCopilotAdapter implements ToolAdapter {
@@ -24,13 +27,12 @@ export class GitHubCopilotAdapter implements ToolAdapter {
 
   buildCommand(options: ToolRunOptions): string {
     const maxIterations = options.skill.max_iterations ?? DEFAULT_MAX_ITERATIONS;
-    // Note: Flags confirmed against actual Copilot CLI output
-    // Remove --yes (not supported), --allow-all and --no-ask-user may need adjustment
     return [
       "copilot",
       "-p",
       `"$(cat ${options.promptPath})"`,
       "--autopilot",
+      "--yolo",
       "--max-autopilot-continues",
       String(maxIterations),
     ].join(" ");

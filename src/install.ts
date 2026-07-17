@@ -35,7 +35,7 @@ async function installSkills(configPath: string, bundleBaseUrl: string): Promise
   // We force tools: ["claude-code"] here to make agent-manager use .claude/skills/,
   // but the actual tool per skill is resolved later by filterSkills().
   const installConfig = {
-    tools: ["claude-code"], // Force shared location, regardless of actual tools used supported by different tools
+    tools: ["claude-code"], // Force shared .claude/skills/ location regardless of actual runtime tool
     scope: config.scope,
     skills: names,
   };

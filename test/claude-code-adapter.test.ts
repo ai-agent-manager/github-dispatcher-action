@@ -68,3 +68,36 @@ test("formatBudgetWarning uses default budget when not set", () => {
   });
   assert.ok(warning.includes("$5"));
 });
+
+// --- applyEnv failure modes ---
+
+test("applyEnv throws when anthropic-auth-token is missing", () => {
+  assert.throws(
+    () =>
+      adapter.applyEnv({
+        anthropicAuthToken: "",
+        anthropicBaseUrl: "",
+        anthropicModel: "",
+        githubToken: "ghs_xxx",
+        copilotToken: "",
+      }),
+    /anthropic-auth-token is required/,
+  );
+});
+
+test("applyEnv sets ANTHROPIC_AUTH_TOKEN when token is provided", () => {
+  const orig = process.env.ANTHROPIC_AUTH_TOKEN;
+  try {
+    adapter.applyEnv({
+      anthropicAuthToken: "sk-ant-test123",
+      anthropicBaseUrl: "",
+      anthropicModel: "",
+      githubToken: "ghs_xxx",
+      copilotToken: "",
+    });
+    assert.strictEqual(process.env.ANTHROPIC_AUTH_TOKEN, "sk-ant-test123");
+  } finally {
+    if (orig === undefined) delete process.env.ANTHROPIC_AUTH_TOKEN;
+    else process.env.ANTHROPIC_AUTH_TOKEN = orig;
+  }
+});
