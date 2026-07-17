@@ -1,5 +1,5 @@
 name: "AI Skills Dispatcher"
-description: "Runs AI agent skills against pull request events using Claude Code and agent-manager."
+description: "Runs AI agent skills against pull request events using Claude Code, GitHub Copilot, and other AI tools."
 author: "ai-agent-manager"
 branding:
   icon: "cpu"
@@ -16,8 +16,9 @@ inputs:
     required: true
 
   anthropic-auth-token:
-    description: "Anthropic API token used to run skills via Claude Code."
-    required: true
+    description: "Anthropic API token used to run skills via Claude Code. Required when using Claude Code tools."
+    required: false
+    default: ""
 
   anthropic-base-url:
     description: "Override the Anthropic API base URL (e.g. for a proxy). Leave empty for the default."
@@ -33,6 +34,11 @@ inputs:
     description: "GitHub token used to post PR comments / update PR description."
     required: true
 
+  copilot-token:
+    description: "WARNING: Fine-grained GitHub user PAT with Copilot access only. Classic tokens are not supported. Required when using GitHub Copilot tools; this is the only github-copilot-specific limitation. Must be a user token, not the default GITHUB_TOKEN."
+    required: false
+    default: ""
+
 runs:
   using: 'docker'
   image: 'Dockerfile'
@@ -45,3 +51,4 @@ runs:
     INPUT_ANTHROPIC_BASE_URL: ${{ inputs.anthropic-base-url }}
     INPUT_ANTHROPIC_MODEL: ${{ inputs.anthropic-model }}
     INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
+    INPUT_COPILOT_TOKEN: ${{ inputs.copilot-token }}

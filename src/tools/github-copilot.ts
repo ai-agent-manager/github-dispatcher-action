@@ -1,0 +1,55 @@
+import type { ToolAdapter, ToolRunOptions, ToolEnvInputs, BudgetHitResult } from "./types.js";
+import type { MatchedSkill } from "../types.js";
+
+const DEFAULT_MAX_ITERATIONS = 10;
+// Detects when Copilot stopped because it hit the max iteration limit.
+// TODO: Verify exact CLI output — the Copilot CLI source is closed and the
+//       exact message text has not been confirmed. If this pattern doesn't
+//       match, cap-hits will silently look like successful runs.
+const ITERATION_LIMIT_PATTERN = /reached maximum number of continuations/i;
+
+export class GitHubCopilotAdapter implements ToolAdapter {
+  readonly name = "github-copilot";
+
+  applyEnv(inputs: ToolEnvInputs): void {
+    if (!inputs.copilotToken) {
+      throw new Error(
+        "copilot-token is required when using github-copilot tools. " +
+          "Must be a user PAT with Copilot access, not the default GITHUB_TOKEN. " +
+          "Create a fine-grained PAT with 'Copilot Requests' permission and set it in your workflow.",
+      );
+    }
+
+    // Copilot checks: COPILOT_GITHUB_TOKEN > GH_TOKEN > GITHUB_TOKEN
+    // Set COPILOT_GITHUB_TOKEN explicitly with the user PAT
+    process.env.COPILOT_GITHUB_TOKEN = inputs.copilotToken;
+  }
+
+  buildCommand(options: ToolRunOptions): string {
+    const maxIterations = options.skill.max_iterations ?? DEFAULT_MAX_ITERATIONS;
+    return [
+      "copilot",
+      "-p",
+      `"$(cat ${options.promptPath})"`,
+      "--autopilot",
+      "--yolo",
+      "--max-autopilot-continues",
+      String(maxIterations),
+    ].join(" ");
+  }
+
+  detectBudgetHit(stdout: string, stderr: string): BudgetHitResult {
+    return {
+      hit: ITERATION_LIMIT_PATTERN.test(stdout) || ITERATION_LIMIT_PATTERN.test(stderr),
+    };
+  }
+
+  formatBudgetWarning(skill: MatchedSkill): string {
+    const maxIterations = skill.max_iterations ?? DEFAULT_MAX_ITERATIONS;
+    return (
+      `⚠️ **Review truncated** — the \`${maxIterations}\` iteration limit was reached before ` +
+      `\`${skill.name}\` finished. Raise \`max_iterations\` for this skill in ` +
+      `\`.github/ai-skills.yml\` if you need a more complete review.`
+    );
+  }
+}

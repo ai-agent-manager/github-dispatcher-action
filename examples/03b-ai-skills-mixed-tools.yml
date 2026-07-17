@@ -1,0 +1,23 @@
+# .github/ai-skills.yml — Example 3b (mixed tool usage with per-skill override)
+#
+# Use the top-level tools list to set a default, then override individual
+# skills with the tool: field when a different AI tool is a better fit.
+
+tools:
+  - claude-code  # Default tool for all skills
+
+scope: repo
+
+skills:
+  # Uses Claude Code (default from tools[0])
+  - name: code-review-backend
+    on: [pull_request.opened, pull_request.synchronize]
+    autonomy: observe
+    max_budget_usd: 7
+
+  # Override: use Copilot for this specific skill
+  - name: security-audit
+    on: [pull_request.opened]
+    autonomy: observe
+    tool: github-copilot
+    max_iterations: 20

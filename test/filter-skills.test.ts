@@ -75,3 +75,58 @@ test("throws when skills field is missing or wrong type", () => {
   assert.throws(() => filterSkills({}, "pull_request", "opened"));
   assert.throws(() => filterSkills({ skills: "not-a-list" as never }, "pull_request", "opened"));
 });
+
+test("resolves tool from config.tools[0] when skill has no tool field", () => {
+  const config = {
+    tools: ["github-copilot"],
+    skills: [{ name: "s1", on: ["pull_request.opened"] }],
+  };
+  const matched = filterSkills(config, "pull_request", "opened");
+  assert.strictEqual(matched[0]?.tool, "github-copilot");
+});
+
+test("defaults to claude-code when neither skill.tool nor config.tools is set", () => {
+  const config = {
+    skills: [{ name: "s1", on: ["pull_request.opened"] }],
+  };
+  const matched = filterSkills(config, "pull_request", "opened");
+  assert.strictEqual(matched[0]?.tool, "claude-code");
+});
+
+test("resolves tool from skill.tool field (per-skill override)", () => {
+  const config = {
+    tools: ["claude-code"],
+    skills: [{ name: "s1", on: ["pull_request.opened"], tool: "github-copilot" }],
+  };
+  const matched = filterSkills(config, "pull_request", "opened");
+  assert.strictEqual(matched[0]?.tool, "github-copilot");
+});
+
+test("forwards max_iterations when set", () => {
+  const config = {
+    skills: [{ name: "s1", on: ["pull_request.opened"], max_iterations: 20 }],
+  };
+  const matched = filterSkills(config, "pull_request", "opened");
+  assert.strictEqual(matched[0]?.max_iterations, 20);
+});
+
+test("throws on invalid tool in skill.tool field", () => {
+  const config = {
+    skills: [{ name: "s1", on: ["pull_request.opened"], tool: "invalid-tool" }],
+  };
+  assert.throws(
+    () => filterSkills(config, "pull_request", "opened"),
+    /Unknown tool "invalid-tool" in skill "s1"/
+  );
+});
+
+test("throws on invalid tool in config.tools[0]", () => {
+  const config = {
+    tools: ["typo-tool"],
+    skills: [{ name: "s1", on: ["pull_request.opened"] }],
+  };
+  assert.throws(
+    () => filterSkills(config, "pull_request", "opened"),
+    /Unknown tool "typo-tool" in config\.tools\[0\]/
+  );
+});

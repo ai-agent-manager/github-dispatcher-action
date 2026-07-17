@@ -23,13 +23,15 @@
 #              explicit human `/ai run` comment, never on PR open or sync.
 #
 # Max budget per skill:
-#   Hard USD cap per skill run. Raise for skills that process large diffs
-#   or need deeper reasoning (e.g. architectural reviews). If the cap is
-#   hit mid-run, a warning is appended to the PR comment so truncation isn't
-#   silent.
+#   max_budget_usd — Hard USD cap per skill run (for Claude Code)
+#   max_iterations — Iteration cap per skill run (for GitHub Copilot)
+#   Raise for skills that process large diffs or need deeper reasoning.
+#   If the cap is hit mid-run, a warning is appended to the PR comment
+#   so truncation isn't silent.
 #
-# Note: Execution always uses Claude Code regardless of how many tools are
-# listed. The tools field controls where skills are installed for local use.
+# Tool selection:
+#   The first tool in the tools list is used for skill execution.
+#   Individual skills can override with a tool: field.
 
 tools:
   - claude-code

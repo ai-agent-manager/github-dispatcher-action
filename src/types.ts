@@ -5,6 +5,8 @@ export interface SkillDefinition {
   on?: ReadonlyArray<string>;
   autonomy?: SkillAutonomy;
   max_budget_usd?: number;
+  max_iterations?: number;
+  tool?: string;
 }
 
 export interface SkillsConfig {
@@ -18,6 +20,8 @@ export interface MatchedSkill {
   autonomy: SkillAutonomy;
   trigger: string;
   max_budget_usd?: number;
+  max_iterations?: number;
+  tool: string;
 }
 
 export interface PullRequestRef {

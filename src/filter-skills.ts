@@ -4,6 +4,7 @@ import yaml from "js-yaml";
 import * as core from "@actions/core";
 
 import type { MatchedSkill, SkillAutonomy, SkillDefinition, SkillsConfig } from "./types.js";
+import { resolveToolName, validateToolName } from "./tools/index.js";
 
 /**
  * Build the normalised event string(s) the consumer might match against.
@@ -87,14 +88,21 @@ function filterSkills(
     }
 
     const autonomy: SkillAutonomy = skill.autonomy ?? "observe";
+    const tool = resolveToolName(skill.tool, config.tools);
 
-    core.info(`[filter] Matched "${skill.name}" (autonomy: ${autonomy}, trigger: ${matchedTrigger})`);
+    // Fail fast if tool typo — before install/checkout happens
+    const source = skill.tool ? `skill "${skill.name}"` : "config.tools[0]";
+    validateToolName(tool, source);
+
+    core.info(`[filter] Matched "${skill.name}" (tool: ${tool}, autonomy: ${autonomy}, trigger: ${matchedTrigger})`);
 
     matched.push({
       name: skill.name,
       autonomy,
       trigger: matchedTrigger,
       max_budget_usd: skill.max_budget_usd,
+      max_iterations: skill.max_iterations,
+      tool,
     });
   }
 

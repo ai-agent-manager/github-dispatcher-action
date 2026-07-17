@@ -9,18 +9,6 @@ import * as exec from "@actions/exec";
 import type { SkillsConfig } from "./types.js";
 
 /**
- * Install the Claude Code CLI globally so the dispatcher can invoke it.
- *
- * This runs on every action invocation. It's the price of a self-contained
- * action — consumers don't need to add an install step to their workflow.
- */
-async function installClaudeCode(): Promise<void> {
-  core.startGroup("Install Claude Code");
-  await exec.exec("npm", ["install", "-g", "@anthropic-ai/claude-code"]);
-  core.endGroup();
-}
-
-/**
  * Read the consumer's ai-skills.yml and use agent-manager to install the
  * listed skills onto the runner.
  *
@@ -39,11 +27,15 @@ async function installSkills(configPath: string, bundleBaseUrl: string): Promise
     throw new Error(`"skills" must be a list in ${configPath}`);
   }
 
-  // Agent-manager wants just the names — drop trigger/autonomy/budget fields.
+  // Agent-manager wants just the names — drop trigger/autonomy/budget/tool fields.
   const names = config.skills.map((skill) => (typeof skill === "string" ? skill : skill.name));
 
+  // IMPORTANT: Always install to the shared .claude/skills/ location.
+  // Both Claude Code and Copilot CLI can read from this directory (it's an open standard).
+  // We force tools: ["claude-code"] here to make agent-manager use .claude/skills/,
+  // but the actual tool per skill is resolved later by filterSkills().
   const installConfig = {
-    tools: config.tools,
+    tools: ["claude-code"], // Force shared .claude/skills/ location regardless of actual runtime tool
     scope: config.scope,
     skills: names,
   };
@@ -58,4 +50,4 @@ async function installSkills(configPath: string, bundleBaseUrl: string): Promise
   core.endGroup();
 }
 
-export { installClaudeCode, installSkills };
+export { installSkills };

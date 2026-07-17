@@ -12,6 +12,7 @@ import { filterSkillsFromFile } from "./filter-skills.js";
 import { installSkills } from "./install.js";
 import { parseCommand } from "./parse-command.js";
 import type { EventPayload } from "./types.js";
+import { getAdapter } from "./tools/index.js";
 
 interface ActionInputs {
   configPath: string;
@@ -20,32 +21,9 @@ interface ActionInputs {
   anthropicBaseUrl: string;
   anthropicModel: string;
   githubToken: string;
+  copilotToken: string;
 }
 
-/**
- * Set environment variables that Claude Code reads, based on action inputs.
- *
- * Anything left blank by the consumer is simply not set, so Claude Code
- * falls back to its own defaults.
- */
-function applyClaudeCodeEnv(inputs: ActionInputs): void {
-  process.env.ANTHROPIC_AUTH_TOKEN = inputs.anthropicAuthToken;
-  if (inputs.anthropicBaseUrl) {
-    process.env.ANTHROPIC_BASE_URL = inputs.anthropicBaseUrl;
-  }
-  if (inputs.anthropicModel) {
-    process.env.ANTHROPIC_MODEL = inputs.anthropicModel;
-  }
-
-  // Lock down telemetry and experimental features for predictable runs.
-  process.env.DISABLE_NON_ESSENTIAL_MODEL_CALLS = "1";
-  process.env.DISABLE_TELEMETRY = "1";
-  process.env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1";
-  process.env.CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS = "1";
-
-  // gh CLI needs GH_TOKEN set in the environment.
-  process.env.GH_TOKEN = inputs.githubToken;
-}
 
 async function run(): Promise<void> {
   try {
@@ -58,10 +36,11 @@ async function run(): Promise<void> {
     const inputs: ActionInputs = {
       configPath: core.getInput("config-path") || ".github/ai-skills.yml",
       bundleBaseUrl: core.getInput("bundle-base-url", { required: true }),
-      anthropicAuthToken: core.getInput("anthropic-auth-token", { required: true }),
+      anthropicAuthToken: core.getInput("anthropic-auth-token"),
       anthropicBaseUrl: core.getInput("anthropic-base-url"),
       anthropicModel: core.getInput("anthropic-model"),
       githubToken: core.getInput("github-token", { required: true }),
+      copilotToken: core.getInput("copilot-token"),
     };
 
     const { eventName, payload } = github.context;
@@ -109,8 +88,22 @@ async function run(): Promise<void> {
       return;
     }
 
-    // 3. Apply Claude Code env now (after install, before running skills).
-    applyClaudeCodeEnv(inputs);
+    // 3. Apply tool-specific env vars.
+    // GH_TOKEN is needed by all tools (for gh CLI) — set it once.
+    process.env.GH_TOKEN = inputs.githubToken;
+
+    // Determine unique tools from matched skills and apply their env.
+    const toolNames = [...new Set(matched.map((s) => s.tool))];
+    for (const toolName of toolNames) {
+      const adapter = getAdapter(toolName);
+      adapter.applyEnv({
+        anthropicAuthToken: inputs.anthropicAuthToken,
+        anthropicBaseUrl: inputs.anthropicBaseUrl,
+        anthropicModel: inputs.anthropicModel,
+        githubToken: inputs.githubToken,
+        copilotToken: inputs.copilotToken,
+      });
+    }
 
     // 4. Fetch the PR diff once and share across all skill runs.
     const diffPath = path.join(os.tmpdir(), "pr.diff");
