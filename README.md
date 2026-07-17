@@ -112,6 +112,12 @@ Each skill in `ai-skills.yml` accepts:
 | `max_budget_usd` | no       | Claude Code budget cap in USD. Defaults to `5` for Claude skills.
 | `max_iterations` | no       | GitHub Copilot iteration cap. Defaults to `10` for Copilot skills.                                                                                         |
 
+## Documentation
+
+- [Releasing](docs/releasing.md) — how to publish a new version
+- [CI validation](docs/ci.md) — what the CI pipeline checks
+- [Branch protection](docs/branch-protection.md) — recommended repository settings
+
 ## Development
 
 ```bash
