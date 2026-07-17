@@ -116,55 +116,13 @@ Each skill in `ai-skills.yml` accepts:
 
 ```bash
 npm ci
-npm run build       # bundle into dist/index.js with ncc
-npm test
-npm run lint
 npm run validate    # typecheck + test + build + lint
+--------------------
+npm run test
+npm run typecheck
+npm run build       # bundle into dist/index.js with ncc
+npm run lint
 ```
-
-## Releases
-
-This repo includes a manual GitHub Actions release workflow at `.github/workflows/release.yml`.
-
-To publish a release:
-
-1. Open the `Release` workflow in GitHub Actions.
-2. Run it against the `main` branch.
-3. Select `major`, `minor`, or `patch`.
-
-The workflow will:
-
-1. Bump `package.json` and `package-lock.json` using `npm version --no-git-tag-version`.
-2. Run `npm ci`, `npm run typecheck`, `npm test`, `npm run build`, and `npm run lint`.
-3. Commit the version bump back to `main`.
-4. Create and push a matching `vX.Y.Z` git tag.
-5. Create a GitHub Release from that tag with generated release notes.
-6. Force-update the `latest` tag to the same release commit.
-7. Force-update the matching major tag such as `v1` to the same release commit.
-
-## CI validation
-
-The repo includes `.github/workflows/ci.yml`, which runs on every push and pull request and executes `npm run validate`.
-
-That validation command runs:
-
-1. `npm run typecheck`
-2. `npm test`
-3. `npm run build`
-4. `npm run lint`
-
-## Main branch protection
-
-The workflow files support branch protection, but GitHub branch protection itself must be configured in the repository settings.
-
-Recommended settings for `main`:
-
-1. Require a pull request before merging.
-2. Require the `CI / Validate` status check to pass before merging.
-3. Restrict direct pushes to `main`.
-4. Allow only the GitHub Actions app or an explicit release automation bypass to update `main` for the release workflow if you want releases to commit the version bump directly.
-
-Without that repository setting, the release workflow cannot guarantee that it is the only path allowed to push to `main`.
 
 ## License
 
