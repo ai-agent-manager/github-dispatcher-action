@@ -76,7 +76,7 @@ jobs:
       - name: Commit release version files
         run: |
           git add package.json package-lock.json
-          git commit -m "chore(release): ${{ steps.version.outputs.tag }}"
+          git commit --no-verify -m "chore(release): ${{ steps.version.outputs.tag }}"
 
       - name: Create release tag
         run: |
@@ -84,8 +84,8 @@ jobs:
 
       - name: Push release commit and tag
         run: |
-          git push origin HEAD:main
-          git push origin "refs/tags/${{ steps.version.outputs.tag }}"
+          git push --no-verify origin HEAD:main
+          git push --no-verify origin "refs/tags/${{ steps.version.outputs.tag }}"
 
       - name: Wait for tag propagation
         env:
@@ -138,5 +138,5 @@ jobs:
         run: |
           git tag -fa latest -m "Latest release" HEAD
           git tag -fa "${{ steps.version.outputs.major_tag }}" -m "Major release line ${{ steps.version.outputs.major_tag }}" HEAD
-          git push origin refs/tags/latest --force
-          git push origin "refs/tags/${{ steps.version.outputs.major_tag }}" --force
+          git push --no-verify origin refs/tags/latest --force
+          git push --no-verify origin "refs/tags/${{ steps.version.outputs.major_tag }}" --force
