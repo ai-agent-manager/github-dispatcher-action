@@ -17,6 +17,7 @@ import { getAdapter } from "./tools/index.js";
 interface ActionInputs {
   configPath: string;
   bundleBaseUrl: string;
+  bundleAccessToken: string;
   anthropicAuthToken: string;
   anthropicBaseUrl: string;
   anthropicModel: string;
@@ -24,18 +25,18 @@ interface ActionInputs {
   copilotToken: string;
 }
 
-
 async function run(): Promise<void> {
   try {
     // Configure git for Docker container environment:
     // 1. Safe directory: /github/workspace has different ownership than node user (UID 1001)
     // 2. Config location: node user can't write to /github/home/.gitconfig
-    process.env.GIT_CONFIG_GLOBAL = '/tmp/.gitconfig';
-    execSync('git config --global --add safe.directory /github/workspace');
+    process.env.GIT_CONFIG_GLOBAL = "/tmp/.gitconfig";
+    execSync("git config --global --add safe.directory /github/workspace");
 
     const inputs: ActionInputs = {
       configPath: core.getInput("config-path") || ".github/ai-skills.yml",
       bundleBaseUrl: core.getInput("bundle-base-url", { required: true }),
+      bundleAccessToken: core.getInput("bundle-access-token"),
       anthropicAuthToken: core.getInput("anthropic-auth-token"),
       anthropicBaseUrl: core.getInput("anthropic-base-url"),
       anthropicModel: core.getInput("anthropic-model"),
@@ -78,7 +79,7 @@ async function run(): Promise<void> {
 
     // 1. Install skills declared in config.
     // Claude Code CLI is pre-installed in Dockerfile (node user can't npm install -g)
-    await installSkills(inputs.configPath, inputs.bundleBaseUrl);
+    await installSkills(inputs.configPath, inputs.bundleBaseUrl, inputs.bundleAccessToken);
 
     // 2. Decide which skills should run for this event.
     const matched = filterSkillsFromFile(inputs.configPath, eventName, eventAction, requestedSkill);
