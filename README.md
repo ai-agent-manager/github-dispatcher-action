@@ -105,13 +105,17 @@ See full consumer examples:
 
 ### Authenticated bundle servers
 
-If your bundle server's discovery document declares `auth.required`, set `bundle-access-token` to a valid bearer token (e.g. from a repo secret, or minted via a client-credentials flow in an earlier workflow step). The runner cannot complete agent-manager's interactive browser login, so without a token the install step fails.
+If your bundle server's discovery document declares `auth.required`, set `bundle-access-token` to a valid bearer token (e.g. from a repo or environment secret, or minted via a client-credentials flow in an earlier workflow step). The runner cannot complete agent-manager's interactive browser login, so without a token the install step fails.
+
+The GitHub Environment can have any name. If its secret uses agent-manager's standard `AGENTMAN_ACCESS_TOKEN` name, map that secret to the action input explicitly:
 
 ```yaml
 with:
   bundle-base-url: https://bootstrap.example.com
-  bundle-access-token: ${{ secrets.BUNDLE_ACCESS_TOKEN }}
+  bundle-access-token: ${{ secrets.AGENTMAN_ACCESS_TOKEN }}
 ```
+
+The action passes this value to the agent-manager CLI as `AGENTMAN_ACCESS_TOKEN`; the secret does not need to be renamed.
 
 ## Skill manifest reference
 
