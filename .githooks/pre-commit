@@ -17,11 +17,13 @@ fi
 # outside the repo so the patterns themselves are never published. To activate,
 # drop a config at the path below; start it with [extend] useDefault = true so
 # the builtin rules still apply.
-config=()
 local_rules="$(git rev-parse --git-dir)/betterleaks-local.toml"
-[[ -f $local_rules ]] && config=(--config "$local_rules")
 
-betterleaks git . --pre-commit --staged --redact --no-banner "${config[@]}"
+if [[ -f $local_rules ]]; then
+  betterleaks git . --pre-commit --staged --redact --no-banner --config "$local_rules"
+else
+  betterleaks git . --pre-commit --staged --redact --no-banner
+fi
 
 # Format check is scoped to staged files: several tracked files predate
 # prettier enforcement, so a repo-wide --check would block every commit.
