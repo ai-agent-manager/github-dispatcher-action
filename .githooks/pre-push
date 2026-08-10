@@ -17,9 +17,7 @@ if ! command -v betterleaks >/dev/null 2>&1; then
   exit 1
 fi
 
-config=()
 local_rules="$(git rev-parse --git-dir)/betterleaks-local.toml"
-[[ -f $local_rules ]] && config=(--config "$local_rules")
 
 # stdin: <local_ref> <local_sha> <remote_ref> <remote_sha> per ref being pushed
 while read -r _local_ref local_sha _remote_ref remote_sha; do
@@ -29,7 +27,11 @@ while read -r _local_ref local_sha _remote_ref remote_sha; do
   else
     range="$remote_sha..$local_sha"
   fi
-  betterleaks git . --log-opts="$range" --redact --no-banner "${config[@]}"
+  if [[ -f $local_rules ]]; then
+    betterleaks git . --log-opts="$range" --redact --no-banner --config "$local_rules"
+  else
+    betterleaks git . --log-opts="$range" --redact --no-banner
+  fi
 done
 
 npm run validate
