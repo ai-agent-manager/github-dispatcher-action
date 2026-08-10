@@ -15,6 +15,11 @@ inputs:
     description: "Skill Bundle base URL. Accessible location where skill bundles are hosted (e.g. https://bootstrap.example.com)."
     required: true
 
+  bundle-access-token:
+    description: "Bearer token for bundle servers that require authentication (passed to agent-manager as AGENTMAN_ACCESS_TOKEN). Leave empty for unauthenticated servers."
+    required: false
+    default: ""
+
   anthropic-auth-token:
     description: "Anthropic API token used to run skills via Claude Code. Required when using Claude Code tools."
     required: false
@@ -40,13 +45,14 @@ inputs:
     default: ""
 
 runs:
-  using: 'docker'
-  image: 'Dockerfile'
+  using: "docker"
+  image: "Dockerfile"
   # Docker actions require explicit env mapping (use UNDERSCORES, not hyphens)
   # @actions/core's getInput() converts "bundle-base-url" → INPUT_BUNDLE_BASE_URL
   env:
     INPUT_CONFIG_PATH: ${{ inputs.config-path }}
     INPUT_BUNDLE_BASE_URL: ${{ inputs.bundle-base-url }}
+    INPUT_BUNDLE_ACCESS_TOKEN: ${{ inputs.bundle-access-token }}
     INPUT_ANTHROPIC_AUTH_TOKEN: ${{ inputs.anthropic-auth-token }}
     INPUT_ANTHROPIC_BASE_URL: ${{ inputs.anthropic-base-url }}
     INPUT_ANTHROPIC_MODEL: ${{ inputs.anthropic-model }}

@@ -9,6 +9,28 @@ import * as exec from "@actions/exec";
 import type { SkillsConfig } from "./types.js";
 
 /**
+ * Build the environment for the agent-manager CLI invocation.
+ *
+ * When the bundle server requires authentication, agent-manager's headless
+ * mode reads the bearer token from AGENTMAN_ACCESS_TOKEN — an interactive
+ * OAuth flow is impossible inside the action container. The variable is only
+ * set when a token was provided, so unauthenticated servers see no change.
+ */
+function buildInstallEnv(
+  baseEnv: Record<string, string | undefined>,
+  bundleAccessToken?: string,
+): Record<string, string> {
+  const env: Record<string, string> = {
+    ...(baseEnv as Record<string, string>),
+    DISABLE_TELEMETRY: "1",
+  };
+  if (bundleAccessToken) {
+    env.AGENTMAN_ACCESS_TOKEN = bundleAccessToken;
+  }
+  return env;
+}
+
+/**
  * Read the consumer's ai-skills.yml and use agent-manager to install the
  * listed skills onto the runner.
  *
@@ -16,9 +38,13 @@ import type { SkillsConfig } from "./types.js";
  * that agent-manager doesn't care about, so we strip those out before
  * handing it the install config.
  */
-async function installSkills(configPath: string, bundleBaseUrl: string): Promise<void> {
+async function installSkills(configPath: string, bundleBaseUrl: string, bundleAccessToken?: string): Promise<void> {
   if (!fs.existsSync(configPath)) {
     throw new Error(`Config file not found: ${configPath}`);
+  }
+
+  if (bundleAccessToken) {
+    core.setSecret(bundleAccessToken);
   }
 
   const config = yaml.load(fs.readFileSync(configPath, "utf-8")) as SkillsConfig;
@@ -45,9 +71,9 @@ async function installSkills(configPath: string, bundleBaseUrl: string): Promise
 
   core.startGroup("Install AI skills via agent-manager");
   await exec.exec("npx", ["-y", "@ai-agent-manager/cli@latest", bundleBaseUrl, "--config", installConfigPath], {
-    env: { ...process.env, DISABLE_TELEMETRY: "1" },
+    env: buildInstallEnv(process.env, bundleAccessToken),
   });
   core.endGroup();
 }
 
-export { installSkills };
+export { buildInstallEnv, installSkills };

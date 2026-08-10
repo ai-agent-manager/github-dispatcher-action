@@ -5,6 +5,7 @@ A GitHub Action that uses Agent Manager to install and run AI agent skills withi
 The action reads a skill manifest from your repo, installs the listed skills via [agent-manager](https://github.com/ai-agent-manager/agentman), filters them by the current event, and runs each matched skill through the configured AI tool in headless mode.
 
 Currently supported tools:
+
 - Claude Code (`claude-code`)
 - GitHub Copilot CLI (`github-copilot`)
 
@@ -21,6 +22,7 @@ Output is posted as a PR comment, used to update the PR description, or committe
 > This is a prompt-injection vector.
 >
 > Mitigations:
+>
 > - Restrict the workflow to comments from users with `write` association or higher
 >   (e.g. `if: github.event.comment.author_association == 'MEMBER' || ...`).
 > - Avoid `act` autonomy on repos that accept PRs from forks.
@@ -85,32 +87,48 @@ jobs:
 ```
 
 See full consumer examples:
+
 - `examples/04-ai-skills-copilot-uc2.yml`
 
 ## Inputs
 
-| Name                   | Required | Default                 | Description                                                                                                     |
-| ---------------------- | -------- | ----------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `config-path`          | no       | `.github/ai-skills.yml` | Path to the skill manifest in your repo.                                                                        |
-| `bundle-base-url`      | yes      | —                       | Skill Bundle base URL. Accessible location where skill bundles are hosted (e.g. https://bootstrap.example.com). |
-| `anthropic-auth-token` | no       | —                       | Anthropic API token. Required only when using `claude-code` skills.                                             |
-| `anthropic-base-url`   | no       | _(Anthropic default)_   | Override the Anthropic API base URL — useful when routing through a proxy.                                      |
-| `anthropic-model`      | no       | _(Claude Code default)_ | Override the default model.                                                                                     |
-| `github-token`         | yes      | —                       | Token used to post PR comments and edit PR descriptions.                                                        |
+| Name                   | Required | Default                 | Description                                                                                                                    |
+| ---------------------- | -------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `config-path`          | no       | `.github/ai-skills.yml` | Path to the skill manifest in your repo.                                                                                       |
+| `bundle-base-url`      | yes      | —                       | Skill Bundle base URL. Accessible location where skill bundles are hosted (e.g. https://bootstrap.example.com).                |
+| `bundle-access-token`  | no       | —                       | Bearer token for bundle servers that require authentication (passed to agent-manager as `AGENTMAN_ACCESS_TOKEN`).              |
+| `anthropic-auth-token` | no       | —                       | Anthropic API token. Required only when using `claude-code` skills.                                                            |
+| `anthropic-base-url`   | no       | _(Anthropic default)_   | Override the Anthropic API base URL — useful when routing through a proxy.                                                     |
+| `anthropic-model`      | no       | _(Claude Code default)_ | Override the default model.                                                                                                    |
+| `github-token`         | yes      | —                       | Token used to post PR comments and edit PR descriptions.                                                                       |
 | `copilot-token`        | no       | —                       | Fine-grained GitHub user PAT with Copilot access only. Classic tokens are not supported. Required for `github-copilot` skills. |
+
+### Authenticated bundle servers
+
+If your bundle server's discovery document declares `auth.required`, set `bundle-access-token` to a valid bearer token (e.g. from a repo or environment secret, or minted via a client-credentials flow in an earlier workflow step). The runner cannot complete agent-manager's interactive browser login, so without a token the install step fails.
+
+The GitHub Environment can have any name. If its secret uses agent-manager's standard `AGENTMAN_ACCESS_TOKEN` name, map that secret to the action input explicitly:
+
+```yaml
+with:
+  bundle-base-url: https://bootstrap.example.com
+  bundle-access-token: ${{ secrets.AGENTMAN_ACCESS_TOKEN }}
+```
+
+The action passes this value to the agent-manager CLI as `AGENTMAN_ACCESS_TOKEN`; the secret does not need to be renamed.
 
 ## Skill manifest reference
 
 Each skill in `ai-skills.yml` accepts:
 
-| Field            | Required | Description                                                                                                                                                 |
-| ---------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `name`           | yes      | Skill identifier as published by agent-manager.                                                                                                             |
-| `on`             | yes      | List of triggers. Supported: `pull_request.opened`, `pull_request.synchronize`, `issue_comment.created`.                                                  |
-| `autonomy`       | no       | `observe` (default) posts a PR comment. `suggest` updates the PR description. `act` commits changes to the PR branch.                                     |
-| `tool`           | no       | Optional per-skill override (`claude-code` or `github-copilot`). If omitted, the first entry from top-level `tools` is used.                             |
-| `max_budget_usd` | no       | Claude Code budget cap in USD. Defaults to `5` for Claude skills.
-| `max_iterations` | no       | GitHub Copilot iteration cap. Defaults to `10` for Copilot skills.                                                                                         |
+| Field            | Required | Description                                                                                                                  |
+| ---------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `name`           | yes      | Skill identifier as published by agent-manager.                                                                              |
+| `on`             | yes      | List of triggers. Supported: `pull_request.opened`, `pull_request.synchronize`, `issue_comment.created`.                     |
+| `autonomy`       | no       | `observe` (default) posts a PR comment. `suggest` updates the PR description. `act` commits changes to the PR branch.        |
+| `tool`           | no       | Optional per-skill override (`claude-code` or `github-copilot`). If omitted, the first entry from top-level `tools` is used. |
+| `max_budget_usd` | no       | Claude Code budget cap in USD. Defaults to `5` for Claude skills.                                                            |
+| `max_iterations` | no       | GitHub Copilot iteration cap. Defaults to `10` for Copilot skills.                                                           |
 
 ## Documentation
 
