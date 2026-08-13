@@ -17,3 +17,12 @@ The workflow will:
 5. Create a GitHub Release from that tag with generated release notes.
 6. Force-update the `latest` tag to the same release commit.
 7. Force-update the matching major tag such as `v1` to the same release commit.
+
+## Pinned harness CLIs
+
+Dockerfile pins the tool CLIs installed into the action image. When bumping pi:
+
+- `@earendil-works/pi-coding-agent` in the Dockerfile
+- `npm:pi-provider-litellm@…` in `src/tools/pi-litellm.ts`
+
+must stay compatible (`pi-provider-litellm@2.0.5` requires pi `>= 0.81.0`). Update both in the same change and note the versions in the README pi section.

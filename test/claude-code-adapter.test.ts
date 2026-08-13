@@ -5,6 +5,11 @@ import { ClaudeCodeAdapter } from "../src/tools/claude-code.js";
 
 const adapter = new ClaudeCodeAdapter();
 
+const runOpts = {
+  promptPath: "/tmp/prompt.txt",
+  prompt: "Use the review skill.",
+};
+
 const emptyEnv = {
   gatewayBaseUrl: "",
   gatewayApiKey: "",
@@ -15,6 +20,7 @@ const emptyEnv = {
 
 test("buildCommand uses max_budget_usd from skill", () => {
   const cmd = adapter.buildCommand({
+    ...runOpts,
     skill: {
       name: "review",
       autonomy: "observe",
@@ -22,24 +28,25 @@ test("buildCommand uses max_budget_usd from skill", () => {
       tool: "claude-code",
       max_budget_usd: 10,
     },
-    promptPath: "/tmp/prompt.txt",
   });
-  assert.ok(cmd.includes("--max-budget-usd 10"));
-  assert.ok(cmd.includes("claude -p"));
+  assert.strictEqual(cmd[0], "claude");
+  assert.ok(cmd.includes("-p"));
   assert.ok(cmd.includes("--dangerously-skip-permissions"));
+  assert.strictEqual(cmd[cmd.indexOf("--max-budget-usd") + 1], "10");
+  assert.strictEqual(cmd.at(-1), runOpts.prompt);
 });
 
 test("buildCommand defaults budget to 5", () => {
   const cmd = adapter.buildCommand({
+    ...runOpts,
     skill: {
       name: "review",
       autonomy: "observe",
       trigger: "pull_request.opened",
       tool: "claude-code",
     },
-    promptPath: "/tmp/prompt.txt",
   });
-  assert.ok(cmd.includes("--max-budget-usd 5"));
+  assert.strictEqual(cmd[cmd.indexOf("--max-budget-usd") + 1], "5");
 });
 
 test("detectBudgetHit returns true for budget pattern in stdout", () => {

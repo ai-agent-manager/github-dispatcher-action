@@ -62,3 +62,9 @@ test("resolveInstallTools uses agents for pi (and legacy agents), otherwise clau
   assert.deepStrictEqual(resolveInstallTools("agents"), ["agents"]);
   assert.deepStrictEqual(resolveInstallTools(undefined), ["claude-code"]);
 });
+
+test("resolveInstallTools installs to both trees for mixed Claude/pi harnesses", () => {
+  assert.deepStrictEqual(resolveInstallTools(["claude-code", "pi"]), ["claude-code", "agents"]);
+  assert.deepStrictEqual(resolveInstallTools(["pi", "github-copilot"]), ["claude-code", "agents"]);
+  assert.deepStrictEqual(resolveInstallTools(["claude-code"], [{ name: "s", tool: "pi" }]), ["claude-code", "agents"]);
+});

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 
 import * as core from "@actions/core";
 
@@ -28,13 +28,17 @@ function runSkill(skill: MatchedSkill, diff: string): ToolRunResult | null {
   const promptPath = path.join(os.tmpdir(), "prompt.txt");
   fs.writeFileSync(promptPath, prompt);
 
-  const command = adapter.buildCommand({ skill, promptPath });
+  const argv = adapter.buildCommand({ skill, promptPath, prompt });
+  const [bin, ...args] = argv;
+  if (!bin) {
+    throw new Error(`Adapter "${adapter.name}" returned an empty command`);
+  }
 
   let output: string;
   let budgetHit = false;
 
   try {
-    output = execSync(command, {
+    output = execFileSync(bin, args, {
       encoding: "utf-8",
       stdio: ["inherit", "pipe", "pipe"],
     });

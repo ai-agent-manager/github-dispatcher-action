@@ -33,22 +33,26 @@ function buildInstallEnv(
 /**
  * Choose which agent-manager install tool list to use.
  *
- * Default: force `claude-code` so skills land in the shared `.claude/skills/`
- * location (Claude Code and Copilot both read that path).
- *
- * When the consumer declares `pi` (or legacy `agents`), pass agent-manager's
- * `agents` provisioner so skills install to `.agents/skills/` for the pi harness.
+ * Claude Code and Copilot share `.claude/skills/` (provisioner `claude-code`).
+ * pi (and legacy `agents`) installs to `.agents/skills/` (provisioner `agents`).
+ * Mixed harness configs — including per-skill `tool:` overrides — get both.
  */
-function resolveInstallTools(configTools: unknown): string[] {
-  const tools = Array.isArray(configTools)
-    ? configTools.filter((t): t is string => typeof t === "string")
-    : typeof configTools === "string"
-      ? [configTools]
-      : [];
-  if (tools.includes("pi") || tools.includes("agents")) {
-    return ["agents"];
-  }
-  return ["claude-code"];
+function resolveInstallTools(configTools: unknown, skills?: SkillsConfig["skills"]): string[] {
+  const fromConfig = Array.isArray(configTools) ? configTools : typeof configTools === "string" ? [configTools] : [];
+  const fromSkills = (skills ?? []).map((skill) =>
+    typeof skill === "object" && skill !== null ? skill.tool : undefined,
+  );
+  const normalized = [...fromConfig, ...fromSkills]
+    .filter((t): t is string => typeof t === "string")
+    .map((t) => (t === "agents" ? "pi" : t));
+
+  const needsAgents = normalized.includes("pi");
+  const needsClaudeDir = normalized.some((t) => t === "claude-code" || t === "github-copilot") || !needsAgents;
+
+  const installTools: string[] = [];
+  if (needsClaudeDir) installTools.push("claude-code");
+  if (needsAgents) installTools.push("agents");
+  return [...new Set(installTools)];
 }
 
 /**
@@ -82,7 +86,7 @@ async function installSkills(
   // Agent-manager wants just the names — drop trigger/autonomy/budget/tool fields.
   const names = config.skills.map((skill) => (typeof skill === "string" ? skill : skill.name));
 
-  const installTools = resolveInstallTools(config.tools);
+  const installTools = resolveInstallTools(config.tools, config.skills);
   const installConfig = {
     tools: installTools,
     scope: config.scope,

@@ -46,6 +46,10 @@ Use one auth hook and (when needed) one gateway URL. Adapters map these to vendo
 >   (e.g. `if: github.event.comment.author_association == 'MEMBER' || ...`).
 > - Avoid `act` autonomy on repos that accept PRs from forks.
 > - Consider running fork PRs in a read-only environment without `contents: write`.
+> - The pi harness passes `-a` / `--approve` so headless CI does not hang on
+>   project-trust prompts. That trusts project-local pi files (`.pi/`) from the
+>   checked-out workspace — do not run pi skills on fork PRs, or run those jobs
+>   without `contents: write`.
 
 ## Harness setups
 
@@ -144,6 +148,8 @@ See also `examples/04-ai-skills-copilot-uc2.yml`.
 ### pi (LiteLLM-compatible gateway)
 
 pi routes model calls through a LiteLLM-compatible gateway. The dispatcher maps `gateway-base-url` / `gateway-api-key` to `LITELLM_BASE_URL` / `LITELLM_API_KEY` for the [`pi-provider-litellm`](https://pi.dev/packages/pi-provider-litellm) extension. Do not append `/v1` to the gateway URL.
+
+The action pins both `@earendil-works/pi-coding-agent` (Dockerfile, currently `0.84.1`) and `npm:pi-provider-litellm@2.0.5` (`src/tools/pi-litellm.ts`). Bump them together — `2.0.5` requires pi `>= 0.81.0`.
 
 ```yaml
 # .github/ai-skills.yml

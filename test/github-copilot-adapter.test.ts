@@ -5,6 +5,11 @@ import { GitHubCopilotAdapter } from "../src/tools/github-copilot.js";
 
 const adapter = new GitHubCopilotAdapter();
 
+const runOpts = {
+  promptPath: "/tmp/prompt.txt",
+  prompt: "Use the review skill.",
+};
+
 const emptyEnv = {
   gatewayBaseUrl: "",
   gatewayApiKey: "",
@@ -15,6 +20,7 @@ const emptyEnv = {
 
 test("buildCommand uses max_iterations from skill", () => {
   const cmd = adapter.buildCommand({
+    ...runOpts,
     skill: {
       name: "review",
       autonomy: "observe",
@@ -22,35 +28,35 @@ test("buildCommand uses max_iterations from skill", () => {
       tool: "github-copilot",
       max_iterations: 25,
     },
-    promptPath: "/tmp/prompt.txt",
   });
-  assert.ok(cmd.includes("--max-autopilot-continues 25"));
-  assert.ok(cmd.includes("copilot"));
+  assert.strictEqual(cmd[0], "copilot");
   assert.ok(cmd.includes("--autopilot"));
+  assert.strictEqual(cmd[cmd.indexOf("--max-autopilot-continues") + 1], "25");
+  assert.strictEqual(cmd[cmd.indexOf("-p") + 1], runOpts.prompt);
 });
 
 test("buildCommand defaults max_iterations to 10", () => {
   const cmd = adapter.buildCommand({
+    ...runOpts,
     skill: {
       name: "review",
       autonomy: "observe",
       trigger: "pull_request.opened",
       tool: "github-copilot",
     },
-    promptPath: "/tmp/prompt.txt",
   });
-  assert.ok(cmd.includes("--max-autopilot-continues 10"));
+  assert.strictEqual(cmd[cmd.indexOf("--max-autopilot-continues") + 1], "10");
 });
 
 test("buildCommand includes required flags", () => {
   const cmd = adapter.buildCommand({
+    ...runOpts,
     skill: {
       name: "review",
       autonomy: "observe",
       trigger: "pull_request.opened",
       tool: "github-copilot",
     },
-    promptPath: "/tmp/prompt.txt",
   });
   assert.ok(cmd.includes("-p") || cmd.includes("--prompt"));
   assert.ok(cmd.includes("--autopilot"));
@@ -131,13 +137,13 @@ test("detectBudgetHit returns false for normal output", () => {
 
 test("buildCommand includes --yolo flag for headless execution", () => {
   const cmd = adapter.buildCommand({
+    ...runOpts,
     skill: {
       name: "review",
       autonomy: "observe",
       trigger: "pull_request.opened",
       tool: "github-copilot",
     },
-    promptPath: "/tmp/prompt.txt",
   });
   assert.ok(cmd.includes("--yolo"), "expected --yolo flag for headless CI");
 });

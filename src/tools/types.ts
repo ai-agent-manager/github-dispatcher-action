@@ -12,6 +12,8 @@ export interface ToolRunOptions {
   skill: MatchedSkill;
   /** Absolute path to a file containing the full prompt text. */
   promptPath: string;
+  /** Prompt text passed as a CLI argument (Claude Code / Copilot). */
+  prompt: string;
 }
 
 /**
@@ -75,10 +77,11 @@ export interface ToolAdapter {
   applyEnv(_inputs: ToolEnvInputs): void;
 
   /**
-   * Build the CLI command string to execute.
-   * Separated from execution so it can be unit-tested without execSync.
+   * Build the CLI argv to execute (`[bin, ...args]`).
+   * Separated from execution so it can be unit-tested without execFileSync.
+   * The dispatcher runs this with execFileSync — no shell interpolation.
    */
-  buildCommand(_options: ToolRunOptions): string;
+  buildCommand(_options: ToolRunOptions): string[];
 
   /**
    * Detect whether the tool's output indicates a budget/limit was hit.

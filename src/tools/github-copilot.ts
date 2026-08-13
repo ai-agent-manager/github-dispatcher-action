@@ -29,17 +29,17 @@ export class GitHubCopilotAdapter implements ToolAdapter {
     process.env.COPILOT_GITHUB_TOKEN = token;
   }
 
-  buildCommand(options: ToolRunOptions): string {
+  buildCommand(options: ToolRunOptions): string[] {
     const maxIterations = options.skill.max_iterations ?? DEFAULT_MAX_ITERATIONS;
     return [
       "copilot",
       "-p",
-      `"$(cat ${options.promptPath})"`,
+      options.prompt,
       "--autopilot",
       "--yolo",
       "--max-autopilot-continues",
       String(maxIterations),
-    ].join(" ");
+    ];
   }
 
   detectBudgetHit(stdout: string, stderr: string): BudgetHitResult {

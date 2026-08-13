@@ -5,6 +5,11 @@ import { PiLiteLLMAdapter } from "../src/tools/pi-litellm.js";
 
 const adapter = new PiLiteLLMAdapter();
 
+const runOpts = {
+  promptPath: "/tmp/prompt.txt",
+  prompt: "Use the review skill.",
+};
+
 const emptyEnv = {
   gatewayBaseUrl: "",
   gatewayApiKey: "",
@@ -52,6 +57,7 @@ test("applyEnv throws when gateway-base-url is missing", () => {
 
 test("buildCommand loads litellm extension and skill by name", () => {
   const cmd = adapter.buildCommand({
+    ...runOpts,
     skill: {
       name: "code-review-backend",
       autonomy: "observe",
@@ -59,29 +65,30 @@ test("buildCommand loads litellm extension and skill by name", () => {
       tool: "pi",
       model: "gpt-4o",
     },
-    promptPath: "/tmp/prompt.txt",
   });
 
-  assert.ok(cmd.startsWith("pi "));
-  assert.ok(cmd.includes("-e npm:pi-provider-litellm"));
-  assert.ok(cmd.includes("--model litellm/gpt-4o"));
-  assert.ok(cmd.includes("--skill code-review-backend"));
+  assert.strictEqual(cmd[0], "pi");
+  assert.strictEqual(cmd[cmd.indexOf("-e") + 1], "npm:pi-provider-litellm@2.0.5");
+  assert.strictEqual(cmd[cmd.indexOf("--model") + 1], "litellm/gpt-4o");
+  assert.strictEqual(cmd[cmd.indexOf("--skill") + 1], "code-review-backend");
   assert.ok(cmd.includes("-p"));
+  assert.ok(cmd.includes("-a"));
   assert.ok(cmd.includes("--no-session"));
+  assert.strictEqual(cmd.at(-1), `@${runOpts.promptPath}`);
 });
 
 test("buildCommand defaults model to litellm/claude-sonnet-4-6", () => {
   delete process.env.PI_LITELLM_DEFAULT_MODEL;
 
   const cmd = adapter.buildCommand({
+    ...runOpts,
     skill: {
       name: "review",
       autonomy: "observe",
       trigger: "pull_request.opened",
       tool: "pi",
     },
-    promptPath: "/tmp/prompt.txt",
   });
 
-  assert.ok(cmd.includes("--model litellm/claude-sonnet-4-6"));
+  assert.strictEqual(cmd[cmd.indexOf("--model") + 1], "litellm/claude-sonnet-4-6");
 });

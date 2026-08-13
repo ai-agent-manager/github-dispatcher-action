@@ -34,9 +34,9 @@ export class ClaudeCodeAdapter implements ToolAdapter {
     process.env.CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS = "1";
   }
 
-  buildCommand(options: ToolRunOptions): string {
+  buildCommand(options: ToolRunOptions): string[] {
     const budget = options.skill.max_budget_usd ?? DEFAULT_BUDGET_USD;
-    return `claude -p --dangerously-skip-permissions --max-budget-usd ${budget} "$(cat ${options.promptPath})"`;
+    return ["claude", "-p", "--dangerously-skip-permissions", "--max-budget-usd", String(budget), options.prompt];
   }
 
   detectBudgetHit(stdout: string, stderr: string): BudgetHitResult {

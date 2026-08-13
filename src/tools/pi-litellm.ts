@@ -4,8 +4,12 @@ import type { MatchedSkill } from "../types.js";
 /** Default model routed via LiteLLM. Override per skill or via action input. */
 const DEFAULT_MODEL = "litellm/claude-sonnet-4-6";
 
-/** Pi extension that discovers models from a LiteLLM-compatible proxy. */
-const LITELLM_EXTENSION = "npm:pi-provider-litellm";
+/**
+ * Pinned LiteLLM extension loaded via `pi -e`.
+ * Keep in sync with `@earendil-works/pi-coding-agent` in the Dockerfile —
+ * 2.0.5 requires pi >= 0.81.0.
+ */
+const LITELLM_EXTENSION = "npm:pi-provider-litellm@2.0.5";
 
 export class PiLiteLLMAdapter implements ToolAdapter {
   readonly name = "pi";
@@ -50,7 +54,7 @@ export class PiLiteLLMAdapter implements ToolAdapter {
     return DEFAULT_MODEL;
   }
 
-  buildCommand(options: ToolRunOptions): string {
+  buildCommand(options: ToolRunOptions): string[] {
     const modelFlag = this.resolveModel(options.skill);
 
     return [
@@ -58,14 +62,16 @@ export class PiLiteLLMAdapter implements ToolAdapter {
       "-e",
       LITELLM_EXTENSION,
       "-p",
+      // --approve: required in headless CI so pi does not prompt to trust
+      // project-local files. See README caution (fork PRs / .pi/ settings).
       "-a",
       "--no-session",
       "--model",
       modelFlag,
       "--skill",
       options.skill.name,
-      `"$(cat ${options.promptPath})"`,
-    ].join(" ");
+      `@${options.promptPath}`,
+    ];
   }
 
   detectBudgetHit(): BudgetHitResult {
