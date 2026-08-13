@@ -37,13 +37,15 @@ test("resolveGatewayInputs treats whitespace-only values as empty", () => {
   assert.strictEqual(resolved.copilotTokenOverride, "");
 });
 
-test("resolveInstallTools uses agents for pi (and legacy agents), otherwise claude-code", () => {
+test("resolveInstallTools maps consumer pi to the agents provisioner", () => {
   assert.deepStrictEqual(resolveInstallTools(["pi"]), ["agents"]);
-  assert.deepStrictEqual(resolveInstallTools(["agents"]), ["agents"]);
   assert.deepStrictEqual(resolveInstallTools(["claude-code", "github-copilot"]), ["claude-code"]);
   assert.deepStrictEqual(resolveInstallTools("pi"), ["agents"]);
-  assert.deepStrictEqual(resolveInstallTools("agents"), ["agents"]);
   assert.deepStrictEqual(resolveInstallTools(undefined), ["claude-code"]);
+});
+
+test("resolveInstallTools does not treat agents as a consumer tool id", () => {
+  assert.deepStrictEqual(resolveInstallTools(["agents"]), ["claude-code"]);
 });
 
 test("resolveInstallTools installs to both trees for mixed Claude/pi harnesses", () => {

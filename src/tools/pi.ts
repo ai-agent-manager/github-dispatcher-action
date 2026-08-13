@@ -1,18 +1,23 @@
 import type { ToolAdapter, ToolRunOptions, ToolEnvInputs, BudgetHitResult } from "./types.js";
 import type { MatchedSkill } from "../types.js";
 
-/** Default model routed via LiteLLM. Override per skill or via action input. */
+/**
+ * Default `--model` when neither skill.model nor default-model is set.
+ * `litellm/` is the provider id registered by pi-provider-litellm.
+ */
 const DEFAULT_MODEL = "litellm/claude-sonnet-4-6";
 
 /**
- * Pinned LiteLLM extension loaded via `pi -e`.
+ * Pi gateway provider extension loaded via `pi -e`.
+ * Implementation is LiteLLM/OpenAI-compatible today (`LITELLM_*` env vars).
  * Keep in sync with `@earendil-works/pi-coding-agent` in the Dockerfile —
  * 2.0.5 requires pi >= 0.81.0.
  */
-const LITELLM_EXTENSION = "npm:pi-provider-litellm@2.0.5";
+const PI_GATEWAY_EXTENSION = "npm:pi-provider-litellm@2.0.5";
 
-export class PiLiteLLMAdapter implements ToolAdapter {
+export class PiAdapter implements ToolAdapter {
   readonly name = "pi";
+  private defaultModel = "";
 
   applyEnv(inputs: ToolEnvInputs): void {
     const baseUrl = inputs.gatewayBaseUrl.trim();
@@ -30,25 +35,20 @@ export class PiLiteLLMAdapter implements ToolAdapter {
       );
     }
 
-    // Last-mile vendor mapping — pi-provider-litellm reads LITELLM_* env vars.
+    // Last-mile mapping for the current gateway extension.
     process.env.LITELLM_BASE_URL = baseUrl.replace(/\/+$/, "");
     process.env.LITELLM_API_KEY = apiKey;
 
     // Disable pi install telemetry in CI.
     process.env.PI_TELEMETRY = "0";
 
-    if (inputs.defaultModel) {
-      process.env.PI_LITELLM_DEFAULT_MODEL = inputs.defaultModel;
-    }
+    this.defaultModel = inputs.defaultModel.trim();
   }
 
   private resolveModel(skill: MatchedSkill): string {
-    if (skill.model) {
-      return skill.model.includes("/") ? skill.model : `litellm/${skill.model}`;
-    }
-    const fromEnv = process.env.PI_LITELLM_DEFAULT_MODEL?.trim();
-    if (fromEnv) {
-      return fromEnv.includes("/") ? fromEnv : `litellm/${fromEnv}`;
+    const raw = skill.model?.trim() || this.defaultModel;
+    if (raw) {
+      return raw.includes("/") ? raw : `litellm/${raw}`;
     }
     return DEFAULT_MODEL;
   }
@@ -59,7 +59,7 @@ export class PiLiteLLMAdapter implements ToolAdapter {
     return [
       "pi",
       "-e",
-      LITELLM_EXTENSION,
+      PI_GATEWAY_EXTENSION,
       "-p",
       // --approve: required in headless CI so pi does not prompt to trust
       // project-local files. See README caution (fork PRs / .pi/ settings).
@@ -74,7 +74,7 @@ export class PiLiteLLMAdapter implements ToolAdapter {
   }
 
   detectBudgetHit(): BudgetHitResult {
-    // Pi print mode has no stable budget-exhaustion signal yet — treat as uncapped.
+    // Pi print mode has no budget or iteration cap.
     return { hit: false };
   }
 

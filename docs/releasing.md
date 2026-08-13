@@ -23,6 +23,6 @@ The workflow will:
 Dockerfile pins the tool CLIs installed into the action image. When bumping pi:
 
 - `@earendil-works/pi-coding-agent` in the Dockerfile
-- `npm:pi-provider-litellm@…` in `src/tools/pi-litellm.ts`
+- `npm:pi-provider-litellm@…` in `src/tools/pi.ts`
 
 must stay compatible (`pi-provider-litellm@2.0.5` requires pi `>= 0.81.0`). Update both in the same change and note the versions in the README pi section.

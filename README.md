@@ -8,7 +8,7 @@ Currently supported harnesses:
 
 - Claude Code (`claude-code`)
 - GitHub Copilot CLI (`github-copilot`)
-- [pi](https://pi.dev) (`pi`) via a LiteLLM-compatible gateway
+- [pi](https://pi.dev) (`pi`) via a configured AI gateway
 
 Output is posted as a PR comment, used to update the PR description, or committed back to the PR branch depending on skill autonomy.
 
@@ -145,16 +145,16 @@ Required settings: `AI_SKILLS_URL`, `AI_GATEWAY_API_KEY` (fine-grained user PAT 
 
 See also `examples/04-ai-skills-copilot-uc2.yml`.
 
-### pi (LiteLLM-compatible gateway)
+### pi
 
-pi routes model calls through a LiteLLM-compatible gateway. The dispatcher maps `gateway-base-url` / `gateway-api-key` to `LITELLM_BASE_URL` / `LITELLM_API_KEY` for the [`pi-provider-litellm`](https://pi.dev/packages/pi-provider-litellm) extension. Do not append `/v1` to the gateway URL.
+pi routes model calls through the configured gateway (`gateway-base-url` / `gateway-api-key`). The current implementation loads [`pi-provider-litellm`](https://pi.dev/packages/pi-provider-litellm) and maps those inputs to `LITELLM_BASE_URL` / `LITELLM_API_KEY`. Do not append `/v1` to the gateway URL. Print mode has no budget or iteration cap.
 
-The action pins both `@earendil-works/pi-coding-agent` (Dockerfile, currently `0.84.1`) and `npm:pi-provider-litellm@2.0.5` (`src/tools/pi-litellm.ts`). Bump them together — `2.0.5` requires pi `>= 0.81.0`.
+The action pins both `@earendil-works/pi-coding-agent` (Dockerfile, currently `0.84.1`) and `npm:pi-provider-litellm@2.0.5` (`src/tools/pi.ts`). Bump them together — `2.0.5` requires pi `>= 0.81.0`.
 
 ```yaml
 # .github/ai-skills.yml
 tools:
-  - pi # installs via agent-manager's agents provisioner → .agents/skills/
+  - pi # skills install to .agents/skills/ via agent-manager's agents provisioner
 scope: repo
 skills:
   - name: code-review-backend
@@ -168,7 +168,7 @@ skills:
     model: gpt-4o
 ```
 
-Required settings: `AI_SKILLS_URL`, `AI_GATEWAY_URL`, `AI_GATEWAY_API_KEY` (gateway API key). Optional: `AI_MODEL` or per-skill `model:`. Prefer pinning `agent-manager-ref` to a release that includes the `agents` provisioner (for example `0.17.0`). The dispatcher maps consumer `tools: [pi]` to that provisioner at install time.
+Required settings: `AI_SKILLS_URL`, `AI_GATEWAY_URL`, `AI_GATEWAY_API_KEY` (gateway API key). Optional: `AI_MODEL` or per-skill `model:`. Prefer pinning `agent-manager-ref` to a release that includes the `agents` provisioner (for example `0.17.0`). Consumer config uses `tools: [pi]`; the dispatcher passes agent-manager's `agents` provisioner so skills land in `.agents/skills/`.
 
 See also `examples/04-ai-skills-pi.yml`.
 
@@ -215,7 +215,7 @@ Each skill in `ai-skills.yml` accepts:
 | `autonomy`       | no       | `observe` (default) posts a PR comment. `suggest` updates the PR description. `act` commits changes to the PR branch.    |
 | `tool`           | no       | Per-skill harness: `claude-code`, `github-copilot`, or `pi`. If omitted, the first entry from top-level `tools` is used. |
 | `model`          | no       | Model ID override (especially for pi). Overrides `default-model`.                                                        |
-| `max_budget_usd` | no       | Claude Code budget cap in USD. Defaults to `5` for Claude skills.                                                        |
+| `max_budget_usd` | no       | Claude Code budget cap in USD. Defaults to `5` for Claude skills. Unused by pi (print mode has no cap).                  |
 | `max_iterations` | no       | GitHub Copilot iteration cap. Defaults to `10` for Copilot skills.                                                       |
 
 ## Documentation

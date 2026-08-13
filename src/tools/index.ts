@@ -1,12 +1,12 @@
 import type { ToolAdapter } from "./types.js";
 import { ClaudeCodeAdapter } from "./claude-code.js";
 import { GitHubCopilotAdapter } from "./github-copilot.js";
-import { PiLiteLLMAdapter } from "./pi-litellm.js";
+import { PiAdapter } from "./pi.js";
 
 const adapters: ReadonlyMap<string, ToolAdapter> = new Map<string, ToolAdapter>([
   ["claude-code", new ClaudeCodeAdapter()],
   ["github-copilot", new GitHubCopilotAdapter()],
-  ["pi", new PiLiteLLMAdapter()],
+  ["pi", new PiAdapter()],
 ]);
 
 /**
@@ -37,17 +37,6 @@ function validateToolName(toolName: string, source: string): void {
 }
 
 /**
- * Normalize consumer tool ids to runtime adapter names.
- *
- * `agents` is agent-manager's install provisioner (`.agents/skills/`), not a
- * runtime harness — map it to `pi` so tools: [pi] and legacy tools: [agents]
- * both execute through the pi adapter.
- */
-function normalizeRuntimeToolName(toolName: string): string {
-  return toolName === "agents" ? "pi" : toolName;
-}
-
-/**
  * Resolve the effective tool for a skill.
  *
  * Priority:
@@ -56,9 +45,9 @@ function normalizeRuntimeToolName(toolName: string): string {
  *   3. "claude-code"   (backward-compatible default)
  */
 function resolveToolName(skillTool: string | undefined, configTools: unknown): string {
-  if (skillTool) return normalizeRuntimeToolName(skillTool);
+  if (skillTool) return skillTool;
   if (Array.isArray(configTools) && typeof configTools[0] === "string") {
-    return normalizeRuntimeToolName(configTools[0]);
+    return configTools[0];
   }
   return "claude-code";
 }

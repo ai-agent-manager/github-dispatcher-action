@@ -1,8 +1,7 @@
-# .github/ai-skills.yml — Example (pi harness + LiteLLM-compatible gateway)
+# .github/ai-skills.yml — Example (pi harness + configured AI gateway)
 #
-# Declares tools: [pi]. The dispatcher maps that to agent-manager's `agents`
-# provisioner so skills install to .agents/skills/, then runs matched skills
-# through the pi.dev open harness.
+# Declares tools: [pi]. Skills install to .agents/skills/ via agent-manager's
+# `agents` provisioner, then matched skills run through the pi CLI.
 #
 # Prerequisites:
 #   - agent-manager with `agents` provisioner (0.17.0+)

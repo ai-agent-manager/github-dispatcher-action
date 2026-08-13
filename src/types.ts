@@ -7,7 +7,7 @@ export interface SkillDefinition {
   max_budget_usd?: number;
   max_iterations?: number;
   tool?: string;
-  /** Model ID for pi-litellm (e.g. claude-sonnet-4-6 or litellm/claude-sonnet-4-6). */
+  /** Model ID for pi (e.g. claude-sonnet-4-6 or litellm/claude-sonnet-4-6). */
   model?: string;
 }
 

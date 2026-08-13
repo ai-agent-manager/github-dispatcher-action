@@ -33,25 +33,25 @@ function buildInstallEnv(
 /**
  * Choose which agent-manager install tool list to use.
  *
- * Claude Code and Copilot share `.claude/skills/` (provisioner `claude-code`).
- * pi (and legacy `agents`) installs to `.agents/skills/` (provisioner `agents`).
- * Mixed harness configs — including per-skill `tool:` overrides — get both.
+ * Consumer tool ids (`pi`, `claude-code`, `github-copilot`) are distinct from
+ * agent-manager provisioner ids. Claude Code and Copilot share `.claude/skills/`
+ * (provisioner `claude-code`). `pi` installs to `.agents/skills/` (provisioner
+ * `agents`). Mixed harness configs — including per-skill `tool:` overrides —
+ * get both.
  */
 function resolveInstallTools(configTools: unknown, skills?: SkillsConfig["skills"]): string[] {
   const fromConfig = Array.isArray(configTools) ? configTools : typeof configTools === "string" ? [configTools] : [];
   const fromSkills = (skills ?? []).map((skill) =>
     typeof skill === "object" && skill !== null ? skill.tool : undefined,
   );
-  const normalized = [...fromConfig, ...fromSkills]
-    .filter((t): t is string => typeof t === "string")
-    .map((t) => (t === "agents" ? "pi" : t));
+  const declared = [...fromConfig, ...fromSkills].filter((t): t is string => typeof t === "string");
 
-  const needsAgents = normalized.includes("pi");
-  const needsClaudeDir = normalized.some((t) => t === "claude-code" || t === "github-copilot") || !needsAgents;
+  const needsPiDir = declared.includes("pi");
+  const needsClaudeDir = declared.some((t) => t === "claude-code" || t === "github-copilot") || !needsPiDir;
 
   const installTools: string[] = [];
   if (needsClaudeDir) installTools.push("claude-code");
-  if (needsAgents) installTools.push("agents");
+  if (needsPiDir) installTools.push("agents");
   return [...new Set(installTools)];
 }
 

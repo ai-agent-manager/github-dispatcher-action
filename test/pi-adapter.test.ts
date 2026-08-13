@@ -1,9 +1,9 @@
 import assert from "node:assert";
 import test from "node:test";
 
-import { PiLiteLLMAdapter } from "../src/tools/pi-litellm.js";
+import { PiAdapter } from "../src/tools/pi.js";
 
-const adapter = new PiLiteLLMAdapter();
+const adapter = new PiAdapter();
 
 const runOpts = {
   promptPath: "/tmp/prompt.txt",
@@ -18,22 +18,32 @@ const emptyEnv = {
   copilotTokenOverride: "",
 };
 
-test("applyEnv maps gateway credentials to LITELLM_* env vars", () => {
+test("applyEnv maps gateway credentials to the current pi gateway extension env vars", () => {
   const prevBase = process.env.LITELLM_BASE_URL;
   const prevKey = process.env.LITELLM_API_KEY;
   const prevTelemetry = process.env.PI_TELEMETRY;
 
   adapter.applyEnv({
     ...emptyEnv,
-    gatewayBaseUrl: "https://litellm.example.com/",
+    gatewayBaseUrl: "https://gateway.example.com/",
     gatewayApiKey: "sk-example-gateway-key",
     defaultModel: "claude-sonnet-4-6",
   });
 
-  assert.strictEqual(process.env.LITELLM_BASE_URL, "https://litellm.example.com");
+  assert.strictEqual(process.env.LITELLM_BASE_URL, "https://gateway.example.com");
   assert.strictEqual(process.env.LITELLM_API_KEY, "sk-example-gateway-key");
   assert.strictEqual(process.env.PI_TELEMETRY, "0");
-  assert.strictEqual(process.env.PI_LITELLM_DEFAULT_MODEL, "claude-sonnet-4-6");
+
+  const cmd = adapter.buildCommand({
+    ...runOpts,
+    skill: {
+      name: "review",
+      autonomy: "observe",
+      trigger: "pull_request.opened",
+      tool: "pi",
+    },
+  });
+  assert.strictEqual(cmd[cmd.indexOf("--model") + 1], "litellm/claude-sonnet-4-6");
 
   if (prevBase === undefined) delete process.env.LITELLM_BASE_URL;
   else process.env.LITELLM_BASE_URL = prevBase;
@@ -41,7 +51,6 @@ test("applyEnv maps gateway credentials to LITELLM_* env vars", () => {
   else process.env.LITELLM_API_KEY = prevKey;
   if (prevTelemetry === undefined) delete process.env.PI_TELEMETRY;
   else process.env.PI_TELEMETRY = prevTelemetry;
-  delete process.env.PI_LITELLM_DEFAULT_MODEL;
 });
 
 test("applyEnv throws when gateway-base-url is missing", () => {
@@ -55,7 +64,7 @@ test("applyEnv throws when gateway-base-url is missing", () => {
   );
 });
 
-test("buildCommand loads litellm extension and skill by name", () => {
+test("buildCommand loads the gateway extension and skill by name", () => {
   const cmd = adapter.buildCommand({
     ...runOpts,
     skill: {
@@ -78,9 +87,8 @@ test("buildCommand loads litellm extension and skill by name", () => {
 });
 
 test("buildCommand defaults model to litellm/claude-sonnet-4-6", () => {
-  delete process.env.PI_LITELLM_DEFAULT_MODEL;
-
-  const cmd = adapter.buildCommand({
+  const fresh = new PiAdapter();
+  const cmd = fresh.buildCommand({
     ...runOpts,
     skill: {
       name: "review",

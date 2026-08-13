@@ -14,7 +14,7 @@ test("getAdapter returns GitHubCopilotAdapter for 'github-copilot'", () => {
   assert.strictEqual(adapter.name, "github-copilot");
 });
 
-test("getAdapter returns PiLiteLLMAdapter for 'pi'", () => {
+test("getAdapter returns PiAdapter for 'pi'", () => {
   const adapter = getAdapter("pi");
   assert.strictEqual(adapter.name, "pi");
 });
@@ -33,9 +33,9 @@ test("resolveToolName falls back to config.tools[0]", () => {
   assert.strictEqual(resolveToolName(undefined, ["github-copilot"]), "github-copilot");
 });
 
-test("resolveToolName maps legacy agents to pi", () => {
-  assert.strictEqual(resolveToolName(undefined, ["agents"]), "pi");
-  assert.strictEqual(resolveToolName("agents", ["claude-code"]), "pi");
+test("resolveToolName does not treat agents as a runtime harness", () => {
+  assert.strictEqual(resolveToolName("agents", ["claude-code"]), "agents");
+  assert.throws(() => validateToolName("agents", "config.tools[0]"), /Unknown tool "agents"/);
 });
 
 test("resolveToolName defaults to claude-code when neither is set", () => {

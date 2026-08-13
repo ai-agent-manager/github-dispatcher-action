@@ -4,8 +4,9 @@ import type { MatchedSkill } from "../types.js";
  * Tool-agnostic budget/limit configuration passed to adapters.
  *
  * Claude Code uses dollar-based budgets; Copilot uses iteration counts.
- * The adapter decides which field to consume. If neither is set on the
- * skill, the adapter falls back to its own default.
+ * Pi print mode has no budget/iteration cap. The adapter decides which
+ * field to consume. If neither is set on the skill, the adapter falls
+ * back to its own default.
  */
 export interface ToolRunOptions {
   /** The matched skill being run — adapters can read any field. */

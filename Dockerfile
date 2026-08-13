@@ -7,7 +7,7 @@ RUN apk add --no-cache git github-cli
 # Must be pre-installed because the node user lacks permission to install globally
 # Pinned versions — update deliberately and test before bumping.
 # pi-coding-agent must stay compatible with npm:pi-provider-litellm@… in
-# src/tools/pi-litellm.ts (2.0.5 requires pi >= 0.81.0). Bump them together.
+# src/tools/pi.ts (2.0.5 requires pi >= 0.81.0). Bump them together.
 RUN npm install -g @anthropic-ai/claude-code@2.1.212 @github/copilot@1.0.71 @earendil-works/pi-coding-agent@0.84.1
 
 COPY . /src
