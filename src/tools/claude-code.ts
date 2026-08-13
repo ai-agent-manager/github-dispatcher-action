@@ -14,7 +14,7 @@ export class ClaudeCodeAdapter implements ToolAdapter {
     if (!inputs.gatewayApiKey) {
       throw new Error(
         "gateway-api-key is required when using claude-code tools. " +
-          "Set secrets.AI_GATEWAY_API_KEY (gateway API key) or the deprecated anthropic-auth-token input.",
+          "Set secrets.AI_GATEWAY_API_KEY (gateway API key).",
       );
     }
 

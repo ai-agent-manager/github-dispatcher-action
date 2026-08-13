@@ -10,17 +10,11 @@ test("firstNonEmpty returns the first trimmed non-empty value", () => {
   assert.strictEqual(firstNonEmpty("", " "), "");
 });
 
-test("resolveGatewayInputs prefers gateway-* over litellm-* over anthropic-*", () => {
+test("resolveGatewayInputs trims canonical gateway inputs", () => {
   const resolved = resolveGatewayInputs({
-    gatewayBaseUrl: "https://gateway.example",
-    gatewayApiKey: "gateway-key",
+    gatewayBaseUrl: "  https://gateway.example  ",
+    gatewayApiKey: " gateway-key ",
     defaultModel: "gateway-model",
-    litellmBaseUrl: "https://litellm.example",
-    litellmApiKey: "litellm-key",
-    piModel: "pi-model",
-    anthropicBaseUrl: "https://anthropic.example",
-    anthropicAuthToken: "anthropic-key",
-    anthropicModel: "anthropic-model",
     copilotToken: "copilot-pat",
   });
 
@@ -30,28 +24,17 @@ test("resolveGatewayInputs prefers gateway-* over litellm-* over anthropic-*", (
   assert.strictEqual(resolved.copilotTokenOverride, "copilot-pat");
 });
 
-test("resolveGatewayInputs falls back through deprecated aliases", () => {
-  const fromLitellm = resolveGatewayInputs({
-    litellmBaseUrl: "https://litellm.example",
-    litellmApiKey: "litellm-key",
-    piModel: "pi-model",
-    anthropicBaseUrl: "https://anthropic.example",
-    anthropicAuthToken: "anthropic-key",
-    anthropicModel: "anthropic-model",
+test("resolveGatewayInputs treats whitespace-only values as empty", () => {
+  const resolved = resolveGatewayInputs({
+    gatewayBaseUrl: "   ",
+    gatewayApiKey: "",
+    defaultModel: undefined,
+    copilotToken: "  ",
   });
-  assert.strictEqual(fromLitellm.gatewayBaseUrl, "https://litellm.example");
-  assert.strictEqual(fromLitellm.gatewayApiKey, "litellm-key");
-  assert.strictEqual(fromLitellm.defaultModel, "pi-model");
-
-  const fromAnthropic = resolveGatewayInputs({
-    anthropicBaseUrl: "https://anthropic.example",
-    anthropicAuthToken: "anthropic-key",
-    anthropicModel: "anthropic-model",
-  });
-  assert.strictEqual(fromAnthropic.gatewayBaseUrl, "https://anthropic.example");
-  assert.strictEqual(fromAnthropic.gatewayApiKey, "anthropic-key");
-  assert.strictEqual(fromAnthropic.defaultModel, "anthropic-model");
-  assert.strictEqual(fromAnthropic.copilotTokenOverride, "");
+  assert.strictEqual(resolved.gatewayBaseUrl, "");
+  assert.strictEqual(resolved.gatewayApiKey, "");
+  assert.strictEqual(resolved.defaultModel, "");
+  assert.strictEqual(resolved.copilotTokenOverride, "");
 });
 
 test("resolveInstallTools uses agents for pi (and legacy agents), otherwise claude-code", () => {

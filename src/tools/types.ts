@@ -35,8 +35,7 @@ export interface BudgetHitResult {
  * Gateway-shaped credentials passed to adapters.
  *
  * Consumer workflows should set gateway-* inputs (or repo vars/secrets
- * AI_GATEWAY_URL / AI_GATEWAY_API_KEY / AI_MODEL). Deprecated anthropic-* /
- * litellm-* / pi-model aliases are resolved before adapters run.
+ * AI_GATEWAY_URL / AI_GATEWAY_API_KEY / AI_MODEL).
  *
  * Adapters map these to vendor-specific env vars at applyEnv time only.
  */

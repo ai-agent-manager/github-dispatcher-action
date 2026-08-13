@@ -1,6 +1,5 @@
 /**
- * First non-empty trimmed string wins. Used to prefer canonical gateway
- * inputs while still accepting deprecated harness-specific aliases.
+ * First non-empty trimmed string wins.
  */
 function firstNonEmpty(...values: Array<string | undefined>): string {
   for (const value of values) {
@@ -14,14 +13,6 @@ export interface RawGatewayInputs {
   gatewayBaseUrl?: string;
   gatewayApiKey?: string;
   defaultModel?: string;
-  /** Deprecated Claude aliases */
-  anthropicBaseUrl?: string;
-  anthropicAuthToken?: string;
-  anthropicModel?: string;
-  /** Deprecated pi / LiteLLM aliases */
-  litellmBaseUrl?: string;
-  litellmApiKey?: string;
-  piModel?: string;
   /** Optional Copilot PAT override for mixed-harness repos */
   copilotToken?: string;
 }
@@ -44,17 +35,14 @@ export interface ResolvedGatewayInputs {
 }
 
 /**
- * Collapse canonical + deprecated action inputs into one gateway-shaped
- * credential set. Adapters map these to vendor env vars at applyEnv time.
- *
- * Precedence (URL / key / model):
- *   gateway-* → litellm-* / pi-model → anthropic-*
+ * Trim gateway action inputs into one credential set. Adapters map these to
+ * vendor env vars at applyEnv time.
  */
 function resolveGatewayInputs(raw: RawGatewayInputs): ResolvedGatewayInputs {
   return {
-    gatewayBaseUrl: firstNonEmpty(raw.gatewayBaseUrl, raw.litellmBaseUrl, raw.anthropicBaseUrl),
-    gatewayApiKey: firstNonEmpty(raw.gatewayApiKey, raw.litellmApiKey, raw.anthropicAuthToken),
-    defaultModel: firstNonEmpty(raw.defaultModel, raw.piModel, raw.anthropicModel),
+    gatewayBaseUrl: firstNonEmpty(raw.gatewayBaseUrl),
+    gatewayApiKey: firstNonEmpty(raw.gatewayApiKey),
+    defaultModel: firstNonEmpty(raw.defaultModel),
     copilotTokenOverride: firstNonEmpty(raw.copilotToken),
   };
 }

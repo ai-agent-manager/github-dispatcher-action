@@ -21,13 +21,12 @@ export class PiLiteLLMAdapter implements ToolAdapter {
     if (!baseUrl) {
       throw new Error(
         "gateway-base-url is required when using pi tools. " +
-          "Set vars.AI_GATEWAY_URL (e.g. https://gateway.example.com) or the deprecated litellm-base-url input.",
+          "Set vars.AI_GATEWAY_URL (e.g. https://gateway.example.com).",
       );
     }
     if (!apiKey) {
       throw new Error(
-        "gateway-api-key is required when using pi tools. " +
-          "Set secrets.AI_GATEWAY_API_KEY (gateway API key) or the deprecated litellm-api-key input.",
+        "gateway-api-key is required when using pi tools. " + "Set secrets.AI_GATEWAY_API_KEY (gateway API key).",
       );
     }
 

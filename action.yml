@@ -26,32 +26,17 @@ inputs:
     default: "latest"
 
   gateway-base-url:
-    description: "AI gateway base URL (e.g. https://gateway.example.com). Used by Claude Code and pi. Prefer this over anthropic-base-url / litellm-base-url."
+    description: "AI gateway base URL (e.g. https://gateway.example.com). Used by Claude Code and pi."
     required: false
     default: ""
 
   gateway-api-key:
-    description: "Auth hook for the selected harness — gateway API key (Claude Code / pi) or fine-grained GitHub user PAT with Copilot Requests (github-copilot). Prefer this over anthropic-auth-token / litellm-api-key."
+    description: "Auth hook for the selected harness — gateway API key (Claude Code / pi) or fine-grained GitHub user PAT with Copilot Requests (github-copilot)."
     required: false
     default: ""
 
   default-model:
-    description: "Default model ID for Claude Code / pi when skill.model is unset. Prefer this over anthropic-model / pi-model. Overridable per skill via model: in ai-skills.yml."
-    required: false
-    default: ""
-
-  anthropic-auth-token:
-    description: "Deprecated alias for gateway-api-key (Claude Code). Still accepted for backwards compatibility."
-    required: false
-    default: ""
-
-  anthropic-base-url:
-    description: "Deprecated alias for gateway-base-url (Claude Code). Still accepted for backwards compatibility."
-    required: false
-    default: ""
-
-  anthropic-model:
-    description: "Deprecated alias for default-model (Claude Code). Still accepted for backwards compatibility."
+    description: "Default model ID for Claude Code / pi when skill.model is unset. Overridable per skill via model: in ai-skills.yml."
     required: false
     default: ""
 
@@ -61,21 +46,6 @@ inputs:
 
   copilot-token:
     description: "Optional Copilot override when mixing a gateway harness with native GitHub Copilot in the same repo. Fine-grained user PAT with Copilot Requests only. If unset, github-copilot uses gateway-api-key."
-    required: false
-    default: ""
-
-  litellm-base-url:
-    description: "Deprecated alias for gateway-base-url (pi). Still accepted for backwards compatibility."
-    required: false
-    default: ""
-
-  litellm-api-key:
-    description: "Deprecated alias for gateway-api-key (pi). Still accepted for backwards compatibility."
-    required: false
-    default: ""
-
-  pi-model:
-    description: "Deprecated alias for default-model (pi). Still accepted for backwards compatibility."
     required: false
     default: ""
 
@@ -92,11 +62,5 @@ runs:
     INPUT_GATEWAY_BASE_URL: ${{ inputs.gateway-base-url }}
     INPUT_GATEWAY_API_KEY: ${{ inputs.gateway-api-key }}
     INPUT_DEFAULT_MODEL: ${{ inputs.default-model }}
-    INPUT_ANTHROPIC_AUTH_TOKEN: ${{ inputs.anthropic-auth-token }}
-    INPUT_ANTHROPIC_BASE_URL: ${{ inputs.anthropic-base-url }}
-    INPUT_ANTHROPIC_MODEL: ${{ inputs.anthropic-model }}
     INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
     INPUT_COPILOT_TOKEN: ${{ inputs.copilot-token }}
-    INPUT_LITELLM_BASE_URL: ${{ inputs.litellm-base-url }}
-    INPUT_LITELLM_API_KEY: ${{ inputs.litellm-api-key }}
-    INPUT_PI_MODEL: ${{ inputs.pi-model }}

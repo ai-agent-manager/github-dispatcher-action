@@ -180,25 +180,17 @@ See also `examples/03b-ai-skills-mixed-tools.yml`.
 
 ## Inputs
 
-| Name                   | Required | Default                 | Description                                                              |
-| ---------------------- | -------- | ----------------------- | ------------------------------------------------------------------------ |
-| `config-path`          | no       | `.github/ai-skills.yml` | Path to the skill manifest in your repo.                                 |
-| `bundle-base-url`      | yes      | —                       | Skill bundle base URL.                                                   |
-| `bundle-access-token`  | no       | —                       | Bearer token for authenticated bundle servers (`AGENTMAN_ACCESS_TOKEN`). |
-| `agent-manager-ref`    | no       | `latest`                | npm version tag for `@ai-agent-manager/cli`.                             |
-| `gateway-base-url`     | no       | —                       | Shared AI gateway URL (Claude Code + pi).                                |
-| `gateway-api-key`      | no       | —                       | Shared auth hook (gateway API key or Copilot PAT).                       |
-| `default-model`        | no       | —                       | Default model for Claude Code / pi; prefer per-skill `model:`.           |
-| `github-token`         | yes      | —                       | Token used to post PR comments and edit PR descriptions.                 |
-| `copilot-token`        | no       | —                       | Optional Copilot PAT override when mixing gateway + Copilot.             |
-| `anthropic-auth-token` | no       | —                       | Deprecated alias for `gateway-api-key`.                                  |
-| `anthropic-base-url`   | no       | —                       | Deprecated alias for `gateway-base-url`.                                 |
-| `anthropic-model`      | no       | —                       | Deprecated alias for `default-model`.                                    |
-| `litellm-base-url`     | no       | —                       | Deprecated alias for `gateway-base-url`.                                 |
-| `litellm-api-key`      | no       | —                       | Deprecated alias for `gateway-api-key`.                                  |
-| `pi-model`             | no       | —                       | Deprecated alias for `default-model`.                                    |
-
-Resolution order for gateway fields: `gateway-*` → `litellm-*` / `pi-model` → `anthropic-*`.
+| Name                  | Required | Default                 | Description                                                              |
+| --------------------- | -------- | ----------------------- | ------------------------------------------------------------------------ |
+| `config-path`         | no       | `.github/ai-skills.yml` | Path to the skill manifest in your repo.                                 |
+| `bundle-base-url`     | yes      | —                       | Skill bundle base URL.                                                   |
+| `bundle-access-token` | no       | —                       | Bearer token for authenticated bundle servers (`AGENTMAN_ACCESS_TOKEN`). |
+| `agent-manager-ref`   | no       | `latest`                | npm version tag for `@ai-agent-manager/cli`.                             |
+| `gateway-base-url`    | no       | —                       | Shared AI gateway URL (Claude Code + pi).                                |
+| `gateway-api-key`     | no       | —                       | Shared auth hook (gateway API key or Copilot PAT).                       |
+| `default-model`       | no       | —                       | Default model for Claude Code / pi; prefer per-skill `model:`.           |
+| `github-token`        | yes      | —                       | Token used to post PR comments and edit PR descriptions.                 |
+| `copilot-token`       | no       | —                       | Optional Copilot PAT override when mixing gateway + Copilot.             |
 
 ### Authenticated bundle servers
 
