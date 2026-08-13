@@ -1,4 +1,4 @@
-FROM node:24-alpine
+FROM node:26-alpine
 
 # Install git and GitHub CLI (required by dispatcher code)
 RUN apk add --no-cache git github-cli
