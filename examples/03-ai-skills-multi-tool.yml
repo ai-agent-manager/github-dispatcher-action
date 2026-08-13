@@ -7,10 +7,12 @@
 # Supported tools:
 #   claude-code      — Claude Code CLI (@anthropic-ai/claude-code)
 #   github-copilot   — GitHub Copilot CLI (@github/copilot)
+#   pi               — pi.dev open harness via LiteLLM-compatible gateway
 #
 # Budget/limit fields by tool:
 #   Claude Code:     max_budget_usd (dollar cap, default: 5)
 #   GitHub Copilot:  max_iterations (iteration count, default: 10)
+#   pi:              max_budget_usd (dollar cap, default: 5)
 
 tools:
   - github-copilot
@@ -21,7 +23,7 @@ skills:
   - name: code-review-backend
     on: [pull_request.opened, pull_request.synchronize]
     autonomy: observe
-    max_iterations: 15  # Copilot-specific budget
+    max_iterations: 15 # Copilot-specific budget
 
   - name: pr-description-generator
     on: [pull_request.opened]

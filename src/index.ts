@@ -11,6 +11,7 @@ import { shouldProcessEvent } from "./event-filter.js";
 import { filterSkillsFromFile } from "./filter-skills.js";
 import { installSkills } from "./install.js";
 import { parseCommand } from "./parse-command.js";
+import { resolveGatewayInputs } from "./resolve-gateway-inputs.js";
 import type { EventPayload } from "./types.js";
 import { getAdapter } from "./tools/index.js";
 
@@ -18,11 +19,18 @@ interface ActionInputs {
   configPath: string;
   bundleBaseUrl: string;
   bundleAccessToken: string;
+  agentManagerRef: string;
+  gatewayBaseUrl: string;
+  gatewayApiKey: string;
+  defaultModel: string;
   anthropicAuthToken: string;
   anthropicBaseUrl: string;
   anthropicModel: string;
   githubToken: string;
   copilotToken: string;
+  litellmBaseUrl: string;
+  litellmApiKey: string;
+  piModel: string;
 }
 
 async function run(): Promise<void> {
@@ -37,12 +45,21 @@ async function run(): Promise<void> {
       configPath: core.getInput("config-path") || ".github/ai-skills.yml",
       bundleBaseUrl: core.getInput("bundle-base-url", { required: true }),
       bundleAccessToken: core.getInput("bundle-access-token"),
+      agentManagerRef: core.getInput("agent-manager-ref") || "latest",
+      gatewayBaseUrl: core.getInput("gateway-base-url"),
+      gatewayApiKey: core.getInput("gateway-api-key"),
+      defaultModel: core.getInput("default-model"),
       anthropicAuthToken: core.getInput("anthropic-auth-token"),
       anthropicBaseUrl: core.getInput("anthropic-base-url"),
       anthropicModel: core.getInput("anthropic-model"),
       githubToken: core.getInput("github-token", { required: true }),
       copilotToken: core.getInput("copilot-token"),
+      litellmBaseUrl: core.getInput("litellm-base-url"),
+      litellmApiKey: core.getInput("litellm-api-key"),
+      piModel: core.getInput("pi-model"),
     };
+
+    const gateway = resolveGatewayInputs(inputs);
 
     const { eventName, payload } = github.context;
     const typedPayload = payload as EventPayload;
@@ -79,7 +96,7 @@ async function run(): Promise<void> {
 
     // 1. Install skills declared in config.
     // Claude Code CLI is pre-installed in Dockerfile (node user can't npm install -g)
-    await installSkills(inputs.configPath, inputs.bundleBaseUrl, inputs.bundleAccessToken);
+    await installSkills(inputs.configPath, inputs.bundleBaseUrl, inputs.bundleAccessToken, inputs.agentManagerRef);
 
     // 2. Decide which skills should run for this event.
     const matched = filterSkillsFromFile(inputs.configPath, eventName, eventAction, requestedSkill);
@@ -94,15 +111,16 @@ async function run(): Promise<void> {
     process.env.GH_TOKEN = inputs.githubToken;
 
     // Determine unique tools from matched skills and apply their env.
+    // Adapters receive gateway-shaped inputs and map to vendor env vars.
     const toolNames = [...new Set(matched.map((s) => s.tool))];
     for (const toolName of toolNames) {
       const adapter = getAdapter(toolName);
       adapter.applyEnv({
-        anthropicAuthToken: inputs.anthropicAuthToken,
-        anthropicBaseUrl: inputs.anthropicBaseUrl,
-        anthropicModel: inputs.anthropicModel,
+        gatewayBaseUrl: gateway.gatewayBaseUrl,
+        gatewayApiKey: gateway.gatewayApiKey,
+        defaultModel: gateway.defaultModel,
         githubToken: inputs.githubToken,
-        copilotToken: inputs.copilotToken,
+        copilotTokenOverride: gateway.copilotTokenOverride,
       });
     }
 

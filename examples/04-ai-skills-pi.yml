@@ -1,0 +1,44 @@
+# .github/ai-skills.yml — Example (pi harness + LiteLLM-compatible gateway)
+#
+# Declares tools: [pi]. The dispatcher maps that to agent-manager's `agents`
+# provisioner so skills install to .agents/skills/, then runs matched skills
+# through the pi.dev open harness.
+#
+# Prerequisites:
+#   - agent-manager with `agents` provisioner (0.17.0+)
+#   - Repository secret: AI_GATEWAY_API_KEY (gateway API key)
+#   - Repository variables: AI_SKILLS_URL, AI_GATEWAY_URL
+#   - Optional variable: AI_MODEL (default model; prefer per-skill model:)
+#
+# Model selection:
+#   - Global default: default-model action input / AI_MODEL
+#   - Per-skill override: model: field below
+#   - Models are discovered from GET {AI_GATEWAY_URL}/v1/models
+
+tools:
+  - pi
+
+scope: repo
+
+skills:
+  - name: code-review-backend
+    on: [pull_request.opened, pull_request.synchronize]
+    autonomy: observe
+    model: claude-sonnet-4-6
+
+  - name: pr-description-generator
+    on: [pull_request.opened]
+    autonomy: suggest
+    model: gpt-4o
+
+---
+# Example workflow snippet (consumer repo):
+#
+# - uses: ai-agent-manager/github-dispatcher-action@latest
+#   with:
+#     bundle-base-url: ${{ vars.AI_SKILLS_URL }}
+#     github-token: ${{ secrets.GITHUB_TOKEN }}
+#     gateway-base-url: ${{ vars.AI_GATEWAY_URL }}
+#     gateway-api-key: ${{ secrets.AI_GATEWAY_API_KEY }}
+#     default-model: ${{ vars.AI_MODEL }}
+#     agent-manager-ref: "0.17.0"

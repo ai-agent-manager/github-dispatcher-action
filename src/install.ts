@@ -31,6 +31,27 @@ function buildInstallEnv(
 }
 
 /**
+ * Choose which agent-manager install tool list to use.
+ *
+ * Default: force `claude-code` so skills land in the shared `.claude/skills/`
+ * location (Claude Code and Copilot both read that path).
+ *
+ * When the consumer declares `pi` (or legacy `agents`), pass agent-manager's
+ * `agents` provisioner so skills install to `.agents/skills/` for the pi harness.
+ */
+function resolveInstallTools(configTools: unknown): string[] {
+  const tools = Array.isArray(configTools)
+    ? configTools.filter((t): t is string => typeof t === "string")
+    : typeof configTools === "string"
+      ? [configTools]
+      : [];
+  if (tools.includes("pi") || tools.includes("agents")) {
+    return ["agents"];
+  }
+  return ["claude-code"];
+}
+
+/**
  * Read the consumer's ai-skills.yml and use agent-manager to install the
  * listed skills onto the runner.
  *
@@ -38,7 +59,12 @@ function buildInstallEnv(
  * that agent-manager doesn't care about, so we strip those out before
  * handing it the install config.
  */
-async function installSkills(configPath: string, bundleBaseUrl: string, bundleAccessToken?: string): Promise<void> {
+async function installSkills(
+  configPath: string,
+  bundleBaseUrl: string,
+  bundleAccessToken?: string,
+  agentManagerRef = "latest",
+): Promise<void> {
   if (!fs.existsSync(configPath)) {
     throw new Error(`Config file not found: ${configPath}`);
   }
@@ -56,12 +82,9 @@ async function installSkills(configPath: string, bundleBaseUrl: string, bundleAc
   // Agent-manager wants just the names — drop trigger/autonomy/budget/tool fields.
   const names = config.skills.map((skill) => (typeof skill === "string" ? skill : skill.name));
 
-  // IMPORTANT: Always install to the shared .claude/skills/ location.
-  // Both Claude Code and Copilot CLI can read from this directory (it's an open standard).
-  // We force tools: ["claude-code"] here to make agent-manager use .claude/skills/,
-  // but the actual tool per skill is resolved later by filterSkills().
+  const installTools = resolveInstallTools(config.tools);
   const installConfig = {
-    tools: ["claude-code"], // Force shared .claude/skills/ location regardless of actual runtime tool
+    tools: installTools,
     scope: config.scope,
     skills: names,
   };
@@ -69,11 +92,14 @@ async function installSkills(configPath: string, bundleBaseUrl: string, bundleAc
   const installConfigPath = path.join(os.tmpdir(), "install-skills.yml");
   fs.writeFileSync(installConfigPath, dump(installConfig));
 
+  const cliSpec = `@ai-agent-manager/cli@${agentManagerRef.trim() || "latest"}`;
+  core.info(`Installing skills with ${cliSpec} (tools: ${installTools.join(", ")})`);
+
   core.startGroup("Install AI skills via agent-manager");
-  await exec.exec("npx", ["-y", "@ai-agent-manager/cli@latest", bundleBaseUrl, "--config", installConfigPath], {
+  await exec.exec("npx", ["-y", cliSpec, bundleBaseUrl, "--config", installConfigPath], {
     env: buildInstallEnv(process.env, bundleAccessToken),
   });
   core.endGroup();
 }
 
-export { buildInstallEnv, installSkills };
+export { buildInstallEnv, installSkills, resolveInstallTools };

@@ -30,15 +30,31 @@ export interface BudgetHitResult {
 }
 
 /**
- * Subset of ActionInputs that adapters need for env configuration.
- * Avoids coupling adapters to the full action input shape.
+ * Gateway-shaped credentials passed to adapters.
+ *
+ * Consumer workflows should set gateway-* inputs (or repo vars/secrets
+ * AI_GATEWAY_URL / AI_GATEWAY_API_KEY / AI_MODEL). Deprecated anthropic-* /
+ * litellm-* / pi-model aliases are resolved before adapters run.
+ *
+ * Adapters map these to vendor-specific env vars at applyEnv time only.
  */
 export interface ToolEnvInputs {
-  anthropicAuthToken: string;
-  anthropicBaseUrl: string;
-  anthropicModel: string;
+  /** Shared gateway base URL (Claude Code + pi). */
+  gatewayBaseUrl: string;
+  /**
+   * Shared auth hook — gateway API key for Claude/pi, or Copilot user PAT when
+   * github-copilot has no override.
+   */
+  gatewayApiKey: string;
+  /** Shared default model (Claude Code + pi). Overridable per skill. */
+  defaultModel: string;
+  /** Token used for gh CLI / PR comments. */
   githubToken: string;
-  copilotToken: string;
+  /**
+   * Optional Copilot PAT override for mixed gateway + Copilot repos.
+   * When empty, github-copilot falls back to gatewayApiKey.
+   */
+  copilotTokenOverride: string;
 }
 
 /**
@@ -53,9 +69,8 @@ export interface ToolAdapter {
 
   /**
    * Set tool-specific environment variables.
-   * Called once before any skills run. Receives the full ActionInputs
-   * so it can pick what it needs (e.g. anthropicAuthToken for Claude,
-   * githubToken for Copilot).
+   * Called once before any skills run. Receives gateway-shaped inputs and
+   * maps them to the vendor env vars each CLI expects.
    */
   applyEnv(_inputs: ToolEnvInputs): void;
 

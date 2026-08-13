@@ -5,6 +5,14 @@ import { GitHubCopilotAdapter } from "../src/tools/github-copilot.js";
 
 const adapter = new GitHubCopilotAdapter();
 
+const emptyEnv = {
+  gatewayBaseUrl: "",
+  gatewayApiKey: "",
+  defaultModel: "",
+  githubToken: "ghs_xxx",
+  copilotTokenOverride: "",
+};
+
 test("buildCommand uses max_iterations from skill", () => {
   const cmd = adapter.buildCommand({
     skill: {
@@ -74,31 +82,33 @@ test("formatBudgetWarning uses default iteration count when not set", () => {
 
 // --- applyEnv failure modes ---
 
-test("applyEnv throws when copilot-token is missing", () => {
-  assert.throws(
-    () =>
-      adapter.applyEnv({
-        anthropicAuthToken: "",
-        anthropicBaseUrl: "",
-        anthropicModel: "",
-        githubToken: "ghs_xxx",
-        copilotToken: "",
-      }),
-    /copilot-token is required/,
-  );
+test("applyEnv throws when gateway-api-key and copilot override are missing", () => {
+  assert.throws(() => adapter.applyEnv(emptyEnv), /gateway-api-key \(or copilot-token override\) is required/);
 });
 
-test("applyEnv sets COPILOT_GITHUB_TOKEN when token is provided", () => {
+test("applyEnv uses gateway-api-key as COPILOT_GITHUB_TOKEN when no override", () => {
   const orig = process.env.COPILOT_GITHUB_TOKEN;
   try {
     adapter.applyEnv({
-      anthropicAuthToken: "",
-      anthropicBaseUrl: "",
-      anthropicModel: "",
-      githubToken: "ghs_xxx",
-      copilotToken: "ghp_test123",
+      ...emptyEnv,
+      gatewayApiKey: "github_pat_shared",
     });
-    assert.strictEqual(process.env.COPILOT_GITHUB_TOKEN, "ghp_test123");
+    assert.strictEqual(process.env.COPILOT_GITHUB_TOKEN, "github_pat_shared");
+  } finally {
+    if (orig === undefined) delete process.env.COPILOT_GITHUB_TOKEN;
+    else process.env.COPILOT_GITHUB_TOKEN = orig;
+  }
+});
+
+test("applyEnv prefers copilot-token override over gateway-api-key", () => {
+  const orig = process.env.COPILOT_GITHUB_TOKEN;
+  try {
+    adapter.applyEnv({
+      ...emptyEnv,
+      gatewayApiKey: "gateway-key",
+      copilotTokenOverride: "github_pat_override",
+    });
+    assert.strictEqual(process.env.COPILOT_GITHUB_TOKEN, "github_pat_override");
   } finally {
     if (orig === undefined) delete process.env.COPILOT_GITHUB_TOKEN;
     else process.env.COPILOT_GITHUB_TOKEN = orig;
@@ -108,24 +118,15 @@ test("applyEnv sets COPILOT_GITHUB_TOKEN when token is provided", () => {
 // --- detectBudgetHit ---
 
 test("detectBudgetHit returns true when iteration limit hit in stdout", () => {
-  assert.strictEqual(
-    adapter.detectBudgetHit("reached maximum number of continuations", "").hit,
-    true,
-  );
+  assert.strictEqual(adapter.detectBudgetHit("reached maximum number of continuations", "").hit, true);
 });
 
 test("detectBudgetHit returns true when iteration limit hit in stderr", () => {
-  assert.strictEqual(
-    adapter.detectBudgetHit("", "Reached Maximum Number Of Continuations").hit,
-    true,
-  );
+  assert.strictEqual(adapter.detectBudgetHit("", "Reached Maximum Number Of Continuations").hit, true);
 });
 
 test("detectBudgetHit returns false for normal output", () => {
-  assert.strictEqual(
-    adapter.detectBudgetHit("Task completed successfully", "").hit,
-    false,
-  );
+  assert.strictEqual(adapter.detectBudgetHit("Task completed successfully", "").hit, false);
 });
 
 test("buildCommand includes --yolo flag for headless execution", () => {

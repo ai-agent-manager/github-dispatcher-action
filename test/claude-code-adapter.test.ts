@@ -5,6 +5,14 @@ import { ClaudeCodeAdapter } from "../src/tools/claude-code.js";
 
 const adapter = new ClaudeCodeAdapter();
 
+const emptyEnv = {
+  gatewayBaseUrl: "",
+  gatewayApiKey: "",
+  defaultModel: "",
+  githubToken: "ghs_xxx",
+  copilotTokenOverride: "",
+};
+
 test("buildCommand uses max_budget_usd from skill", () => {
   const cmd = adapter.buildCommand({
     skill: {
@@ -71,33 +79,30 @@ test("formatBudgetWarning uses default budget when not set", () => {
 
 // --- applyEnv failure modes ---
 
-test("applyEnv throws when anthropic-auth-token is missing", () => {
-  assert.throws(
-    () =>
-      adapter.applyEnv({
-        anthropicAuthToken: "",
-        anthropicBaseUrl: "",
-        anthropicModel: "",
-        githubToken: "ghs_xxx",
-        copilotToken: "",
-      }),
-    /anthropic-auth-token is required/,
-  );
+test("applyEnv throws when gateway-api-key is missing", () => {
+  assert.throws(() => adapter.applyEnv(emptyEnv), /gateway-api-key is required/);
 });
 
-test("applyEnv sets ANTHROPIC_AUTH_TOKEN when token is provided", () => {
-  const orig = process.env.ANTHROPIC_AUTH_TOKEN;
+test("applyEnv maps gateway inputs to ANTHROPIC_* env vars", () => {
+  const origToken = process.env.ANTHROPIC_AUTH_TOKEN;
+  const origBase = process.env.ANTHROPIC_BASE_URL;
+  const origModel = process.env.ANTHROPIC_MODEL;
   try {
     adapter.applyEnv({
-      anthropicAuthToken: "sk-ant-test123",
-      anthropicBaseUrl: "",
-      anthropicModel: "",
-      githubToken: "ghs_xxx",
-      copilotToken: "",
+      ...emptyEnv,
+      gatewayApiKey: "sk-ant-test123",
+      gatewayBaseUrl: "https://gateway.example.com",
+      defaultModel: "opusplan",
     });
     assert.strictEqual(process.env.ANTHROPIC_AUTH_TOKEN, "sk-ant-test123");
+    assert.strictEqual(process.env.ANTHROPIC_BASE_URL, "https://gateway.example.com");
+    assert.strictEqual(process.env.ANTHROPIC_MODEL, "opusplan");
   } finally {
-    if (orig === undefined) delete process.env.ANTHROPIC_AUTH_TOKEN;
-    else process.env.ANTHROPIC_AUTH_TOKEN = orig;
+    if (origToken === undefined) delete process.env.ANTHROPIC_AUTH_TOKEN;
+    else process.env.ANTHROPIC_AUTH_TOKEN = origToken;
+    if (origBase === undefined) delete process.env.ANTHROPIC_BASE_URL;
+    else process.env.ANTHROPIC_BASE_URL = origBase;
+    if (origModel === undefined) delete process.env.ANTHROPIC_MODEL;
+    else process.env.ANTHROPIC_MODEL = origModel;
   }
 });

@@ -11,19 +11,20 @@ export class ClaudeCodeAdapter implements ToolAdapter {
   readonly name = "claude-code";
 
   applyEnv(inputs: ToolEnvInputs): void {
-    if (!inputs.anthropicAuthToken) {
+    if (!inputs.gatewayApiKey) {
       throw new Error(
-        "anthropic-auth-token is required when using claude-code tools. " +
-          "Set it in your workflow's with: block.",
+        "gateway-api-key is required when using claude-code tools. " +
+          "Set secrets.AI_GATEWAY_API_KEY (gateway API key) or the deprecated anthropic-auth-token input.",
       );
     }
 
-    process.env.ANTHROPIC_AUTH_TOKEN = inputs.anthropicAuthToken;
-    if (inputs.anthropicBaseUrl) {
-      process.env.ANTHROPIC_BASE_URL = inputs.anthropicBaseUrl;
+    // Last-mile vendor mapping — Claude Code reads ANTHROPIC_* env vars.
+    process.env.ANTHROPIC_AUTH_TOKEN = inputs.gatewayApiKey;
+    if (inputs.gatewayBaseUrl) {
+      process.env.ANTHROPIC_BASE_URL = inputs.gatewayBaseUrl;
     }
-    if (inputs.anthropicModel) {
-      process.env.ANTHROPIC_MODEL = inputs.anthropicModel;
+    if (inputs.defaultModel) {
+      process.env.ANTHROPIC_MODEL = inputs.defaultModel;
     }
 
     // Lock down telemetry and experimental features for predictable runs.
