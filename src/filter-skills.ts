@@ -1,6 +1,6 @@
 import fs from "node:fs";
 
-import yaml from "js-yaml";
+import { load } from "js-yaml";
 import * as core from "@actions/core";
 
 import type { MatchedSkill, SkillAutonomy, SkillDefinition, SkillsConfig } from "./types.js";
@@ -123,7 +123,7 @@ function filterSkillsFromFile(
     throw new Error(`Config file not found: ${configPath}`);
   }
 
-  const config = yaml.load(fs.readFileSync(configPath, "utf-8")) as SkillsConfig;
+  const config = load(fs.readFileSync(configPath, "utf-8")) as SkillsConfig;
   return filterSkills(config, eventName, eventAction, requestedSkill);
 }
 

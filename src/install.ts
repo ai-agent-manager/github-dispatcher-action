@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import yaml from "js-yaml";
+import { dump, load } from "js-yaml";
 import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 
@@ -47,7 +47,7 @@ async function installSkills(configPath: string, bundleBaseUrl: string, bundleAc
     core.setSecret(bundleAccessToken);
   }
 
-  const config = yaml.load(fs.readFileSync(configPath, "utf-8")) as SkillsConfig;
+  const config = load(fs.readFileSync(configPath, "utf-8")) as SkillsConfig;
 
   if (!config.skills || !Array.isArray(config.skills)) {
     throw new Error(`"skills" must be a list in ${configPath}`);
@@ -67,7 +67,7 @@ async function installSkills(configPath: string, bundleBaseUrl: string, bundleAc
   };
 
   const installConfigPath = path.join(os.tmpdir(), "install-skills.yml");
-  fs.writeFileSync(installConfigPath, yaml.dump(installConfig));
+  fs.writeFileSync(installConfigPath, dump(installConfig));
 
   core.startGroup("Install AI skills via agent-manager");
   await exec.exec("npx", ["-y", "@ai-agent-manager/cli@latest", bundleBaseUrl, "--config", installConfigPath], {
