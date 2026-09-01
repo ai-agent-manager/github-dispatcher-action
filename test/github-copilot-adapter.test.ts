@@ -8,7 +8,6 @@ const adapter = new GitHubCopilotAdapter();
 const runOpts = {
   defaultModel: "",
   promptPath: "/tmp/prompt.txt",
-  prompt: "Use the review skill.",
 };
 
 const emptyEnv = {
@@ -33,7 +32,7 @@ test("buildCommand uses max_iterations from skill", () => {
   assert.strictEqual(cmd[0], "copilot");
   assert.ok(cmd.includes("--autopilot"));
   assert.strictEqual(cmd[cmd.indexOf("--max-autopilot-continues") + 1], "25");
-  assert.strictEqual(cmd[cmd.indexOf("-p") + 1], runOpts.prompt);
+  assert.strictEqual(cmd[cmd.indexOf("--attachment") + 1], runOpts.promptPath);
 });
 
 test("buildCommand defaults max_iterations to 10", () => {
