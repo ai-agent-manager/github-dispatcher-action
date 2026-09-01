@@ -10,12 +10,33 @@ import type { ToolRunResult } from "./tools/types.js";
 import { getAdapter } from "./tools/index.js";
 
 interface ExecSyncError extends Error {
+  status?: number | null;
+  signal?: NodeJS.Signals | null;
   stdout?: Buffer | string;
   stderr?: Buffer | string;
 }
 
 type ExecuteCommand = typeof execFileSync;
 type ReportError = (_message: string) => void;
+
+const MAX_DIAGNOSTIC_STDERR_LENGTH = 1_000;
+
+function formatExecutionFailure(error: ExecSyncError, prompt: string, diff: string): string {
+  const exitDetail = error.signal ? `signal ${error.signal}` : `exit status ${error.status ?? "unknown"}`;
+  const stderr = error.stderr?.toString().trim();
+
+  if (!stderr) {
+    return exitDetail;
+  }
+
+  const promptRedactedStderr = stderr.replaceAll(prompt, "[redacted prompt]");
+  const sanitisedStderr = diff ? promptRedactedStderr.replaceAll(diff, "[redacted diff]") : promptRedactedStderr;
+  if (sanitisedStderr.length <= MAX_DIAGNOSTIC_STDERR_LENGTH) {
+    return `${exitDetail}: ${sanitisedStderr}`;
+  }
+
+  return `${exitDetail}: ${sanitisedStderr.slice(0, MAX_DIAGNOSTIC_STDERR_LENGTH)} [truncated]`;
+}
 
 /**
  * Run an AI tool in headless mode against a single skill, returning the
@@ -70,7 +91,8 @@ function runSkill(
       output = "";
       budgetHit = true;
     } else {
-      reportError(`[run] ${skill.name} failed because the tool exited unsuccessfully.`);
+      const detail = formatExecutionFailure(execError, prompt, diff);
+      reportError(`[run] ${skill.name} failed because the tool exited unsuccessfully (${detail}).`);
       return null;
     }
   }
