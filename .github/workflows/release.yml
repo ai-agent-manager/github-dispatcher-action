@@ -1,17 +1,7 @@
 name: Release
-run-name: Release ${{ inputs.release_type }} from main
+run-name: Release current version from main
 
-on:
-  workflow_dispatch:
-    inputs:
-      release_type:
-        description: Select the semantic version bump to release.
-        required: true
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
+on: workflow_dispatch
 
 permissions:
   contents: write
@@ -50,14 +40,13 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Bump release version
+      - name: Resolve release version
         id: version
         run: |
           # Match only vX.Y.Z so the moving `latest` and `v${major}` tags, which still
           # point at the previous release while notes are generated, cannot be chosen.
           previous_tag="$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' 2>/dev/null || true)"
 
-          npm version "${{ inputs.release_type }}" --no-git-tag-version
           version="$(node -p "require('./package.json').version")"
           tag="v${version}"
           major_tag="v$(node -p "require('./package.json').version.split('.')[0]")"
@@ -78,18 +67,12 @@ jobs:
       - name: Validate release candidate
         run: npm run validate
 
-      - name: Commit release version files
-        run: |
-          git add package.json package-lock.json
-          git commit --no-verify -m "chore(release): ${{ steps.version.outputs.tag }}"
-
       - name: Create release tag
         run: |
           git tag -a "${{ steps.version.outputs.tag }}" -m "Release ${{ steps.version.outputs.tag }}"
 
-      - name: Push release commit and tag
+      - name: Push release tag
         run: |
-          git push --no-verify origin HEAD:main
           git push --no-verify origin "refs/tags/${{ steps.version.outputs.tag }}"
 
       - name: Wait for tag propagation

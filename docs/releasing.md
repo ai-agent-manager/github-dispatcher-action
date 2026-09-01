@@ -2,25 +2,34 @@
 
 This repo includes a manual GitHub Actions release workflow at `.github/workflows/release.yml`.
 
+## Preparing a release
+
+Repository rules require every change to `main` to pass through a pull request. Prepare the version before publishing:
+
+1. Create a release branch from `main`.
+2. Run `npm version major --no-git-tag-version`, replacing `major` with `minor` or `patch` as needed.
+3. Open a pull request containing the `package.json` and `package-lock.json` changes.
+4. Merge the pull request after all required checks pass.
+
 ## Publishing a release
 
-1. Open the **Release** workflow in GitHub Actions.
-2. Run it against the `main` branch.
-3. Select `major`, `minor`, or `patch`.
+1. Confirm `package.json` on `main` contains the version to publish.
+2. Confirm the matching `vX.Y.Z` tag does not already exist.
+3. Open the **Release** workflow in GitHub Actions.
+4. Run it against the `main` branch.
 
 The workflow will:
 
-1. Bump `package.json` and `package-lock.json` using `npm version --no-git-tag-version`.
+1. Read the version from `package.json`.
 2. Run `npm ci`, `npm run typecheck`, `npm test`, `npm run build`, and `npm run lint`.
-3. Commit the version bump back to `main`.
-4. Create and push a matching `vX.Y.Z` git tag.
-5. Create a GitHub Release from that tag with generated release notes.
-6. Force-update the `latest` tag to the same release commit.
-7. Force-update the matching major tag such as `v1` to the same release commit.
+3. Create and push a matching `vX.Y.Z` git tag for the current `main` commit.
+4. Create a GitHub Release from that tag with generated release notes.
+5. Force-update the `latest` tag to the same release commit.
+6. Force-update the matching major tag such as `v2` to the same release commit.
 
 ## Major releases
 
-Selecting `major` creates a new major release line. The workflow moves `latest` and the new major tag to the release commit. Existing major tags do not move, so consumers pinned to the previous major version remain on that compatible release line.
+A major version bump creates a new major release line. The publishing workflow moves `latest` and the new major tag to the release commit. Existing major tags do not move, so consumers pinned to the previous major version remain on that compatible release line.
 
 Before publishing a major release:
 
