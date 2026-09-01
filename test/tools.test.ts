@@ -1,7 +1,13 @@
 import assert from "node:assert";
 import test from "node:test";
 
-import { getAdapter, resolveConfiguredToolNames, resolveToolName, validateToolName } from "../src/tools/index.js";
+import {
+  getAdapter,
+  resolveConfiguredToolNames,
+  resolveToolName,
+  validateToolCredentials,
+  validateToolName,
+} from "../src/tools/index.js";
 
 // Registry tests
 test("getAdapter returns ClaudeCodeAdapter for 'claude-code'", () => {
@@ -74,4 +80,20 @@ test("validateToolName throws on unknown tool with clear message", () => {
   assert.throws(() => validateToolName("bad-tool", "config.tools[0]"), /Unknown tool "bad-tool" in config\.tools\[0\]/);
   assert.throws(() => validateToolName("typo", 'skill "review"'), /Supported: claude-code, github-copilot, pi/);
   assert.throws(() => validateToolName("typo", 'skill "review"'), /Check for typos in your \.github\/ai-skills\.yml/);
+});
+
+// validateToolCredentials tests
+test("validateToolCredentials allows Copilot-only without a separate token", () => {
+  assert.doesNotThrow(() => validateToolCredentials(["github-copilot"], ""));
+});
+
+test("validateToolCredentials allows mixed tools with a separate token", () => {
+  assert.doesNotThrow(() => validateToolCredentials(["claude-code", "github-copilot"], "github_pat_copilot"));
+});
+
+test("validateToolCredentials rejects mixed tools without a separate token", () => {
+  assert.throws(
+    () => validateToolCredentials(["pi", "github-copilot"], "  "),
+    /copilot-token is required.*separate fine-grained GitHub PAT with the Copilot Requests permission/,
+  );
 });
