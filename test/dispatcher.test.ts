@@ -3,30 +3,47 @@ import fs from "node:fs";
 import os from "node:os";
 import test from "node:test";
 
-import { runSkill } from "../src/dispatcher.js";
+import { executeCommand, runSkill } from "../src/dispatcher.js";
 
-interface ExecutionError extends Error {
-  status?: number;
-  signal?: NodeJS.Signals;
-  stderr?: string;
+const skill = {
+  name: "review",
+  autonomy: "observe" as const,
+  trigger: "pull_request.opened" as const,
+  tool: "github-copilot" as const,
+};
+
+function resultWith(overrides: Partial<{
+  stdout: string;
+  stderr: string;
+  stdoutForDetection: string;
+  stderrForDetection: string;
+  outputTruncated: boolean;
+  exitCode: number | null;
+  signal: NodeJS.Signals | null;
+}> = {}) {
+  return {
+    stdout: "",
+    stderr: "",
+    stdoutForDetection: "",
+    stderrForDetection: "",
+    outputTruncated: false,
+    exitCode: 0,
+    signal: null,
+    ...overrides,
+  };
 }
 
-test("runSkill does not include the untrusted diff in failure annotations", () => {
+test("runSkill does not include the untrusted diff in failure annotations", async () => {
   const untrustedDiff = "SECRET_FROM_UNTRUSTED_PR_DIFF";
   const annotations: string[] = [];
 
-  const result = runSkill(
-    {
-      name: "review",
-      autonomy: "observe",
-      trigger: "pull_request.opened",
-      tool: "github-copilot",
-    },
+  const result = await runSkill(
+    skill,
     untrustedDiff,
     "",
-    (() => {
+    async () => {
       throw new Error(`Command failed: copilot -p ${untrustedDiff}`);
-    }) as typeof import("node:child_process").execFileSync,
+    },
     (message) => annotations.push(message),
   );
 
@@ -36,46 +53,101 @@ test("runSkill does not include the untrusted diff in failure annotations", () =
   assert.match(annotations[0] ?? "", /review failed/);
 });
 
-test("runSkill includes sanitised stderr and the exit status in failure annotations", () => {
-  const annotations: string[] = [];
+test("runSkill retains normal output", async () => {
+  const result = await runSkill(skill, "diff", "", async () => resultWith({ stdout: "review output", stdoutForDetection: "review output" }));
 
-  const result = runSkill(
-    {
-      name: "review",
-      autonomy: "observe",
-      trigger: "pull_request.opened",
-      tool: "github-copilot",
-    },
+  assert.deepStrictEqual(result, { output: "review output", budgetHit: false });
+});
+
+test("runSkill retains output larger than Node's default 1 MiB buffer", async () => {
+  const largeOutput = "a".repeat(1024 * 1024 + 1);
+  const result = await runSkill(
+    skill,
     "diff",
     "",
-    (() => {
-      const error: ExecutionError = new Error("copilot command and argv should not appear");
-      error.status = 23;
-      error.stderr = "authentication service unavailable";
-      throw error;
-    }) as typeof import("node:child_process").execFileSync,
+    async () => resultWith({ stdout: largeOutput, stdoutForDetection: largeOutput }),
+  );
+
+  assert.strictEqual(result?.output.length, largeOutput.length);
+  assert.strictEqual(result?.budgetHit, false);
+});
+
+test("executeCommand retains output above 1 MiB", async () => {
+  const result = await executeCommand(process.execPath, ["-e", "process.stdout.write('a'.repeat(1024 * 1024 + 1))"]);
+
+  assert.strictEqual(result.stdout.length, 1024 * 1024 + 1);
+  assert.strictEqual(result.outputTruncated, false);
+});
+
+test("executeCommand truncates output at the configured upper bound", async () => {
+  const result = await executeCommand(process.execPath, ["-e", "process.stdout.write('a'.repeat(5 * 1024 * 1024))"]);
+
+  assert.strictEqual(result.stdout.length, 4 * 1024 * 1024);
+  assert.strictEqual(result.outputTruncated, true);
+});
+
+test("executeCommand pipes input to the child's stdin", async () => {
+  const result = await executeCommand(
+    process.execPath,
+    ["-e", "process.stdin.pipe(process.stdout)"],
+    "stdin prompt payload",
+  );
+
+  assert.strictEqual(result.stdout, "stdin prompt payload");
+  assert.strictEqual(result.exitCode, 0);
+  assert.strictEqual(result.signal, null);
+});
+
+test("executeCommand reports the signal when the child is killed", async () => {
+  const result = await executeCommand(process.execPath, ["-e", "process.kill(process.pid, 'SIGTERM')"]);
+
+  assert.strictEqual(result.exitCode, null);
+  assert.strictEqual(result.signal, "SIGTERM");
+});
+
+test("runSkill detects an iteration marker at the end of captured output", async () => {
+  const result = await runSkill(skill, "diff", "", async () =>
+    resultWith({
+      stdout: "a".repeat(4 * 1024 * 1024),
+      stdoutForDetection: `${"a".repeat(4 * 1024 * 1024)} reached maximum number of continuations`,
+      outputTruncated: true,
+    }),
+  );
+
+  assert.strictEqual(result?.budgetHit, true);
+  assert.match(result?.output ?? "", /iteration limit/);
+});
+
+test("runSkill includes sanitised stderr and the exit status in failure annotations", async () => {
+  const annotations: string[] = [];
+
+  const result = await runSkill(
+    skill,
+    "diff",
+    "",
+    async () =>
+      resultWith({
+        stderr: "authentication service unavailable",
+        stderrForDetection: "authentication service unavailable",
+        exitCode: 23,
+      }),
     (message) => annotations.push(message),
   );
 
   assert.strictEqual(result, null);
   assert.match(annotations[0] ?? "", /exit status 23/);
   assert.match(annotations[0] ?? "", /authentication service unavailable/);
-  assert.ok(!annotations[0]?.includes("copilot command and argv should not appear"));
 });
 
-test("runSkill truncates diagnostic stderr", () => {
+test("runSkill truncates diagnostic stderr", async () => {
   const annotations: string[] = [];
   const diagnostic = "x".repeat(5_000);
 
-  runSkill(
-    { name: "review", autonomy: "observe", trigger: "pull_request.opened", tool: "github-copilot" },
+  await runSkill(
+    skill,
     "diff",
     "",
-    (() => {
-      const error: ExecutionError = new Error("failed");
-      error.stderr = diagnostic;
-      throw error;
-    }) as typeof import("node:child_process").execFileSync,
+    async () => resultWith({ stderr: diagnostic, stderrForDetection: diagnostic, exitCode: 1 }),
     (message) => annotations.push(message),
   );
 
@@ -83,19 +155,19 @@ test("runSkill truncates diagnostic stderr", () => {
   assert.match(annotations[0] ?? "", /\[truncated\]/);
 });
 
-test("runSkill redacts prompt and diff from diagnostic stderr", () => {
+test("runSkill redacts prompt and diff from diagnostic stderr", async () => {
   const annotations: string[] = [];
   const diff = "SECRET_FROM_UNTRUSTED_PR_DIFF";
 
-  runSkill(
-    { name: "review", autonomy: "observe", trigger: "pull_request.opened", tool: "github-copilot" },
+  await runSkill(
+    skill,
     diff,
     "",
-    (() => {
-      const error: ExecutionError = new Error("failed");
-      error.stderr = `tool echoed: Use the review skill. Here is the diff: ${diff}`;
-      throw error;
-    }) as typeof import("node:child_process").execFileSync,
+    async () =>
+      resultWith({
+        stderr: `tool echoed: Use the review skill. Here is the diff: ${diff}`,
+        exitCode: 1,
+      }),
     (message) => annotations.push(message),
   );
 
@@ -103,19 +175,14 @@ test("runSkill redacts prompt and diff from diagnostic stderr", () => {
   assert.match(annotations[0] ?? "", /\[redacted prompt\]/);
 });
 
-test("runSkill omits an empty stderr diagnostic", () => {
+test("runSkill omits an empty stderr diagnostic", async () => {
   const annotations: string[] = [];
 
-  runSkill(
-    { name: "review", autonomy: "observe", trigger: "pull_request.opened", tool: "github-copilot" },
+  await runSkill(
+    skill,
     "diff",
     "",
-    (() => {
-      const error: ExecutionError = new Error("failed");
-      error.signal = "SIGTERM";
-      error.stderr = "   ";
-      throw error;
-    }) as typeof import("node:child_process").execFileSync,
+    async () => resultWith({ stderr: "   ", exitCode: null, signal: "SIGTERM" }),
     (message) => annotations.push(message),
   );
 
@@ -123,22 +190,13 @@ test("runSkill omits an empty stderr diagnostic", () => {
   assert.ok(!annotations[0]?.includes(":"));
 });
 
-test("runSkill still treats budget detection in stderr as a successful truncated run", () => {
-  const result = runSkill(
-    {
-      name: "review",
-      autonomy: "observe",
-      trigger: "pull_request.opened",
-      tool: "github-copilot",
-      max_iterations: 4,
-    },
-    "diff",
-    "",
-    (() => {
-      const error: ExecutionError = new Error("failed");
-      error.stderr = "reached maximum number of continuations";
-      throw error;
-    }) as typeof import("node:child_process").execFileSync,
+test("runSkill still treats budget detection in stderr as a successful truncated run", async () => {
+  const result = await runSkill({ ...skill, max_iterations: 4 }, "diff", "", async () =>
+    resultWith({
+      stderr: "reached maximum number of continuations",
+      stderrForDetection: "reached maximum number of continuations",
+      exitCode: 1,
+    }),
   );
 
   assert.deepStrictEqual(result, {
@@ -149,14 +207,14 @@ test("runSkill still treats budget detection in stderr as a successful truncated
 });
 
 for (const tool of ["claude-code", "github-copilot"] as const) {
-  test(`runSkill keeps prompts larger than 128 KiB out of ${tool} argv`, () => {
+  test(`runSkill keeps prompts larger than 128 KiB out of ${tool} argv`, async () => {
     const diff = "x".repeat(129 * 1024);
     const prompt = `Use the review skill. Here is the diff: ${diff}`;
     let capturedArgs: readonly string[] = [];
     let capturedInput = "";
     let capturedAttachment = "";
 
-    const result = runSkill(
+    const result = await runSkill(
       {
         name: "review",
         autonomy: "observe",
@@ -165,16 +223,16 @@ for (const tool of ["claude-code", "github-copilot"] as const) {
       },
       diff,
       "",
-      ((bin: string, args: readonly string[], options?: { input?: string | Uint8Array }) => {
+      async (bin: string, args: string[], input?: string) => {
         assert.ok(bin === "claude" || bin === "copilot");
         capturedArgs = args;
-        capturedInput = options?.input?.toString() ?? "";
+        capturedInput = input ?? "";
         if (tool === "github-copilot") {
           const attachment = args[args.indexOf("--attachment") + 1];
           if (attachment) capturedAttachment = fs.readFileSync(attachment, "utf-8");
         }
-        return "complete";
-      }) as typeof import("node:child_process").execFileSync,
+        return resultWith({ stdout: "complete", stdoutForDetection: "complete" });
+      },
     );
 
     assert.deepStrictEqual(result, { output: "complete", budgetHit: false });
@@ -190,10 +248,10 @@ for (const tool of ["claude-code", "github-copilot"] as const) {
   });
 }
 
-test("runSkill removes Pi's temporary prompt file after execution", () => {
+test("runSkill removes Pi's temporary prompt file after execution", async () => {
   let promptPath = "";
 
-  const result = runSkill(
+  const result = await runSkill(
     {
       name: "review",
       autonomy: "observe",
@@ -203,11 +261,11 @@ test("runSkill removes Pi's temporary prompt file after execution", () => {
     },
     "diff",
     "",
-    ((_: string, args: readonly string[]) => {
+    async (_bin: string, args: string[]) => {
       promptPath = args.find((arg) => arg.startsWith("@"))?.slice(1) ?? "";
       assert.ok(fs.existsSync(promptPath));
-      return "complete";
-    }) as typeof import("node:child_process").execFileSync,
+      return resultWith({ stdout: "complete", stdoutForDetection: "complete" });
+    },
   );
 
   assert.deepStrictEqual(result, { output: "complete", budgetHit: false });
@@ -215,20 +273,22 @@ test("runSkill removes Pi's temporary prompt file after execution", () => {
   assert.ok(!fs.existsSync(promptPath));
 });
 
-test("runSkill removes the temporary prompt directory when buildCommand throws", () => {
+test("runSkill removes the temporary prompt directory when buildCommand throws", async () => {
   const tmpRoot = fs.realpathSync(os.tmpdir());
   const before = fs.readdirSync(tmpRoot).filter((name) => name.startsWith("ai-skill-"));
 
   // Pi requires an explicit model; buildCommand throws before the tool launches.
-  assert.throws(() =>
-    runSkill(
-      { name: "review", autonomy: "observe", trigger: "pull_request.opened", tool: "pi" },
-      "diff",
-      "",
-      (() => {
-        throw new Error("should not reach the tool");
-      }) as typeof import("node:child_process").execFileSync,
-    ),
+  await assert.rejects(
+    () =>
+      runSkill(
+        { name: "review", autonomy: "observe", trigger: "pull_request.opened", tool: "pi" },
+        "diff",
+        "",
+        async () => {
+          throw new Error("should not reach the tool");
+        },
+      ),
+    /model is required/,
   );
 
   const after = fs.readdirSync(tmpRoot).filter((name) => name.startsWith("ai-skill-"));
