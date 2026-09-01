@@ -1,4 +1,4 @@
-import type { ToolAdapter, ToolRunOptions, ToolEnvInputs, BudgetHitResult } from "./types.js";
+import type { ToolAdapter, ToolRunOptions, ToolEnvInputs, ToolEnvironment, BudgetHitResult } from "./types.js";
 import type { MatchedSkill } from "../types.js";
 
 /**
@@ -12,7 +12,7 @@ const PI_GATEWAY_EXTENSION = "/usr/local/lib/node_modules/pi-provider-litellm/sr
 export class PiAdapter implements ToolAdapter {
   readonly name = "pi";
 
-  applyEnv(inputs: ToolEnvInputs): void {
+  buildEnv(inputs: ToolEnvInputs, baseEnv: ToolEnvironment): ToolEnvironment {
     const baseUrl = inputs.gatewayBaseUrl.trim();
     const apiKey = inputs.gatewayApiKey.trim();
 
@@ -29,9 +29,12 @@ export class PiAdapter implements ToolAdapter {
     }
 
     // Last-mile vendor mapping — pi-provider-litellm reads LITELLM_* env vars.
-    process.env.LITELLM_BASE_URL = baseUrl.replace(/\/+$/, "");
-    process.env.LITELLM_API_KEY = apiKey;
-    process.env.PI_TELEMETRY = "0";
+    return {
+      ...baseEnv,
+      LITELLM_BASE_URL: baseUrl.replace(/\/+$/, ""),
+      LITELLM_API_KEY: apiKey,
+      PI_TELEMETRY: "0",
+    };
   }
 
   buildCommand(options: ToolRunOptions): string[] {
