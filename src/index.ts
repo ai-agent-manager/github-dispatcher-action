@@ -7,25 +7,16 @@ import * as core from "@actions/core";
 import * as github from "@actions/github";
 
 import { runAll } from "./dispatcher.js";
+import { getBaseEnvironment } from "./environment.js";
 import { shouldProcessEvent } from "./event-filter.js";
 import { filterSkillsFromFile } from "./filter-skills.js";
 import { installSkills } from "./install.js";
+import { readActionInputs } from "./inputs.js";
 import { parseCommand } from "./parse-command.js";
 import { resolveGatewayInputs } from "./resolve-gateway-inputs.js";
 import type { EventPayload } from "./types.js";
 import { getAdapter } from "./tools/index.js";
-
-interface ActionInputs {
-  configPath: string;
-  bundleBaseUrl: string;
-  bundleAccessToken: string;
-  agentManagerRef: string;
-  gatewayBaseUrl: string;
-  gatewayApiKey: string;
-  defaultModel: string;
-  githubToken: string;
-  copilotToken: string;
-}
+import type { ToolEnvironment } from "./tools/types.js";
 
 async function run(): Promise<void> {
   try {
@@ -35,17 +26,7 @@ async function run(): Promise<void> {
     process.env.GIT_CONFIG_GLOBAL = "/tmp/.gitconfig";
     execSync("git config --global --add safe.directory /github/workspace");
 
-    const inputs: ActionInputs = {
-      configPath: core.getInput("config-path") || ".github/ai-skills.yml",
-      bundleBaseUrl: core.getInput("bundle-base-url", { required: true }),
-      bundleAccessToken: core.getInput("bundle-access-token"),
-      agentManagerRef: core.getInput("agent-manager-ref") || "latest",
-      gatewayBaseUrl: core.getInput("gateway-base-url"),
-      gatewayApiKey: core.getInput("gateway-api-key"),
-      defaultModel: core.getInput("default-model"),
-      githubToken: core.getInput("github-token", { required: true }),
-      copilotToken: core.getInput("copilot-token"),
-    };
+    const inputs = readActionInputs(core.getInput, core.setSecret);
 
     const gateway = resolveGatewayInputs(inputs);
 
@@ -94,34 +75,29 @@ async function run(): Promise<void> {
       return;
     }
 
-    // 3. Apply tool-specific env vars.
-    // GH_TOKEN is needed by all tools (for gh CLI) — set it once.
-    process.env.GH_TOKEN = inputs.githubToken;
-
-    // Determine unique tools from matched skills and apply their env.
-    // Adapters receive gateway-shaped inputs and map to vendor env vars.
+    // 3. Build one credential-isolated environment per AI tool.
     const toolNames = [...new Set(matched.map((s) => s.tool))];
+    const toolEnvironments = new Map<string, ToolEnvironment>();
     for (const toolName of toolNames) {
       const adapter = getAdapter(toolName);
-      adapter.applyEnv({
+      toolEnvironments.set(toolName, adapter.buildEnv({
         gatewayBaseUrl: gateway.gatewayBaseUrl,
         gatewayApiKey: gateway.gatewayApiKey,
         defaultModel: gateway.defaultModel,
-        githubToken: inputs.githubToken,
         copilotTokenOverride: gateway.copilotTokenOverride,
-      });
+      }, getBaseEnvironment()));
     }
 
     // 4. Fetch the PR diff once and share across all skill runs.
     const diffPath = path.join(os.tmpdir(), "pr.diff");
     execSync(`gh pr diff ${prNumber} > ${diffPath}`, {
       stdio: "inherit",
-      env: process.env,
+      env: { ...process.env, GH_TOKEN: inputs.githubToken },
     });
     const diff = fs.readFileSync(diffPath, "utf-8");
 
     // 5. Run every matched skill and post its result.
-    runAll(matched, diff, prNumber, gateway.defaultModel);
+    runAll(matched, diff, prNumber, gateway.defaultModel, toolEnvironments, inputs.githubToken);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     core.setFailed(message);

@@ -40,7 +40,7 @@ export interface BudgetHitResult {
  * Consumer workflows should set gateway-* inputs (or repo vars/secrets
  * AI_GATEWAY_URL / AI_GATEWAY_API_KEY / AI_MODEL).
  *
- * Adapters map these to vendor-specific env vars at applyEnv time only.
+ * Adapters map these to vendor-specific child-process environment variables.
  */
 export interface ToolEnvInputs {
   /** Shared gateway base URL (Claude Code + pi). */
@@ -52,14 +52,14 @@ export interface ToolEnvInputs {
   gatewayApiKey: string;
   /** Shared default model (Claude Code + pi). Overridable per skill. */
   defaultModel: string;
-  /** Token used for gh CLI / PR comments. */
-  githubToken: string;
   /**
    * Optional Copilot PAT override for mixed gateway + Copilot repos.
    * When empty, github-copilot falls back to gatewayApiKey.
    */
   copilotTokenOverride: string;
 }
+
+export type ToolEnvironment = NodeJS.ProcessEnv;
 
 /**
  * Each supported AI tool implements this interface.
@@ -72,11 +72,9 @@ export interface ToolAdapter {
   readonly name: string;
 
   /**
-   * Set tool-specific environment variables.
-   * Called once before any skills run. Receives gateway-shaped inputs and
-   * maps them to the vendor env vars each CLI expects.
+  * Build a child-process environment containing only this tool's credentials.
    */
-  applyEnv(_inputs: ToolEnvInputs): void;
+  buildEnv(_inputs: ToolEnvInputs, _baseEnv: ToolEnvironment): ToolEnvironment;
 
   /**
    * Build the CLI argv to execute (`[bin, ...args]`).
