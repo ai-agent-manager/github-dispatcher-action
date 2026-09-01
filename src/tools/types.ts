@@ -70,7 +70,7 @@ export interface ToolAdapter {
   readonly name: string;
 
   /**
-  * Build a child-process environment containing only this tool's credentials.
+   * Build a child-process environment containing only this tool's credentials.
    */
   buildEnv(_inputs: ToolEnvInputs, _baseEnv: ToolEnvironment): ToolEnvironment;
 

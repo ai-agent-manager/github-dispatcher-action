@@ -97,11 +97,14 @@ test("buildEnv uses gateway-api-key as COPILOT_GITHUB_TOKEN when no override", (
 });
 
 test("buildEnv prefers copilot-token override over gateway-api-key", () => {
-  const environment = adapter.buildEnv({
-    ...emptyEnv,
-    gatewayApiKey: "gateway-key",
-    copilotTokenOverride: "github_pat_override",
-  }, {});
+  const environment = adapter.buildEnv(
+    {
+      ...emptyEnv,
+      gatewayApiKey: "gateway-key",
+      copilotTokenOverride: "github_pat_override",
+    },
+    {},
+  );
   assert.strictEqual(environment.COPILOT_GITHUB_TOKEN, "github_pat_override");
 });
 

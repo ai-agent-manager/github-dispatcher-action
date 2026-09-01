@@ -106,12 +106,15 @@ test("buildEnv throws when gateway-api-key is missing", () => {
 });
 
 test("buildEnv maps gateway inputs to an isolated ANTHROPIC_* environment", () => {
-  const environment = adapter.buildEnv({
-    ...emptyEnv,
-    gatewayApiKey: "sk-ant-test123",
-    gatewayBaseUrl: "https://gateway.example.com",
-    defaultModel: "opusplan",
-  }, { PATH: "/usr/bin" });
+  const environment = adapter.buildEnv(
+    {
+      ...emptyEnv,
+      gatewayApiKey: "sk-ant-test123",
+      gatewayBaseUrl: "https://gateway.example.com",
+      defaultModel: "opusplan",
+    },
+    { PATH: "/usr/bin" },
+  );
   assert.strictEqual(environment.ANTHROPIC_AUTH_TOKEN, "sk-ant-test123");
   assert.strictEqual(environment.ANTHROPIC_BASE_URL, "https://gateway.example.com");
   assert.strictEqual(environment.ANTHROPIC_MODEL, "opusplan");

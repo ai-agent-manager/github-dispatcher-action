@@ -18,12 +18,15 @@ const emptyEnv = {
 };
 
 test("buildEnv maps gateway credentials for the pinned pi provider extension", () => {
-  const environment = adapter.buildEnv({
-    ...emptyEnv,
-    gatewayBaseUrl: "https://gateway.example.com/",
-    gatewayApiKey: "sk-example-gateway-key",
-    defaultModel: "claude-sonnet-4-6",
-  }, { PATH: "/usr/bin" });
+  const environment = adapter.buildEnv(
+    {
+      ...emptyEnv,
+      gatewayBaseUrl: "https://gateway.example.com/",
+      gatewayApiKey: "sk-example-gateway-key",
+      defaultModel: "claude-sonnet-4-6",
+    },
+    { PATH: "/usr/bin" },
+  );
 
   assert.strictEqual(environment.LITELLM_BASE_URL, "https://gateway.example.com");
   assert.strictEqual(environment.LITELLM_API_KEY, "sk-example-gateway-key");
@@ -40,16 +43,18 @@ test("buildEnv maps gateway credentials for the pinned pi provider extension", (
     },
   });
   assert.strictEqual(cmd[cmd.indexOf("--model") + 1], "claude-sonnet-4-6");
-
 });
 
 test("buildEnv throws when gateway-base-url is missing", () => {
   assert.throws(
     () =>
-      adapter.buildEnv({
-        ...emptyEnv,
-        gatewayApiKey: "key",
-      }, {}),
+      adapter.buildEnv(
+        {
+          ...emptyEnv,
+          gatewayApiKey: "key",
+        },
+        {},
+      ),
     /gateway-base-url is required/,
   );
 });

@@ -10,8 +10,8 @@ export interface ActionInputs {
   copilotToken: string;
 }
 
-type GetInput = (name: string, options?: { required?: boolean }) => string;
-type SetSecret = (secret: string) => void;
+type GetInput = (_name: string, _options?: { required?: boolean }) => string;
+type SetSecret = (_secret: string) => void;
 
 function readSecret(getInput: GetInput, setSecret: SetSecret, name: string, required = false): string {
   const value = getInput(name, { required });

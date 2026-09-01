@@ -85,12 +85,18 @@ async function run(): Promise<void> {
     const toolEnvironments = new Map<string, ToolEnvironment>();
     for (const toolName of toolNames) {
       const adapter = getAdapter(toolName);
-      toolEnvironments.set(toolName, adapter.buildEnv({
-        gatewayBaseUrl: gateway.gatewayBaseUrl,
-        gatewayApiKey: gateway.gatewayApiKey,
-        defaultModel: gateway.defaultModel,
-        copilotTokenOverride: gateway.copilotTokenOverride,
-      }, getBaseEnvironment()));
+      toolEnvironments.set(
+        toolName,
+        adapter.buildEnv(
+          {
+            gatewayBaseUrl: gateway.gatewayBaseUrl,
+            gatewayApiKey: gateway.gatewayApiKey,
+            defaultModel: gateway.defaultModel,
+            copilotTokenOverride: gateway.copilotTokenOverride,
+          },
+          getBaseEnvironment(),
+        ),
+      );
     }
 
     // 4. Fetch the PR diff once and share across all skill runs.

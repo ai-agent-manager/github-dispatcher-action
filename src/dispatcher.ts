@@ -190,12 +190,14 @@ function postResult(skill: MatchedSkill, output: string, prNumber: number, githu
 
   if (skill.autonomy === "observe") {
     execSync(`gh pr comment ${prNumber} --body-file ${outputPath}`, {
-      stdio: "inherit", env: { ...process.env, GH_TOKEN: githubToken },
+      stdio: "inherit",
+      env: { ...process.env, GH_TOKEN: githubToken },
     });
     core.info(`[run] ✓ ${skill.name} — posted as PR comment`);
   } else if (skill.autonomy === "suggest") {
     execSync(`gh pr edit ${prNumber} --body-file ${outputPath}`, {
-      stdio: "inherit", env: { ...process.env, GH_TOKEN: githubToken },
+      stdio: "inherit",
+      env: { ...process.env, GH_TOKEN: githubToken },
     });
     core.info(`[run] ✓ ${skill.name} — PR description updated`);
   } else if (skill.autonomy === "act") {
@@ -229,7 +231,8 @@ function commitAndPush(skill: MatchedSkill, prNumber: number, githubToken: strin
   // Resolve the PR's source branch — distinct from the base. This is where
   // we push back. `gh` reads GH_TOKEN from the environment.
   const branch = execSync(`gh pr view ${prNumber} --json headRefName -q .headRefName`, {
-    encoding: "utf-8", env: { ...process.env, GH_TOKEN: githubToken },
+    encoding: "utf-8",
+    env: { ...process.env, GH_TOKEN: githubToken },
   }).trim();
 
   // github-actions[bot] is GitHub's recommended identity for workflow

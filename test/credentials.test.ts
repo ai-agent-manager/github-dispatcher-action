@@ -17,7 +17,10 @@ const secrets = {
 
 test("masks every non-empty credential immediately after reading it", () => {
   const masked: string[] = [];
-  readActionInputs((name) => secrets[name as keyof typeof secrets] ?? "", (secret) => masked.push(secret));
+  readActionInputs(
+    (name) => secrets[name as keyof typeof secrets] ?? "",
+    (secret) => masked.push(secret),
+  );
   assert.deepStrictEqual(masked, Object.values(secrets));
 });
 
@@ -61,16 +64,24 @@ test("base environment removes inherited harness credentials", () => {
   assert.deepStrictEqual(base, { PATH: "/usr/bin" });
 });
 
-test("runSkill passes only its configured environment to the child process", () => {
+test("runSkill passes only its configured environment to the child process", async () => {
   let childEnvironment: NodeJS.ProcessEnv | undefined;
-  runSkill(
+  await runSkill(
     { name: "review", autonomy: "observe", trigger: "pull_request.opened", tool: "github-copilot" },
     "diff",
     "",
-    ((_bin, _args, options) => {
-      childEnvironment = options?.env;
-      return "done";
-    }) as typeof import("node:child_process").execFileSync,
+    async (_bin: string, _args: string[], _input?: string, environment?: NodeJS.ProcessEnv) => {
+      childEnvironment = environment;
+      return {
+        stdout: "done",
+        stderr: "",
+        stdoutForDetection: "done",
+        stderrForDetection: "",
+        outputTruncated: false,
+        exitCode: 0,
+        signal: null,
+      };
+    },
     () => undefined,
     { PATH: "/usr/bin", COPILOT_GITHUB_TOKEN: "copilot-secret" },
   );
