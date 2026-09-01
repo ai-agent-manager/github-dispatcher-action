@@ -1,0 +1,41 @@
+# .github/ai-skills.yml — Example (pi harness + configured AI gateway)
+#
+# Declares tools: [pi]. Skills install to .agents/skills/ via agent-manager's
+# `agents` provisioner, then matched skills run through the pi CLI.
+#
+# Prerequisites:
+#   - agent-manager with `agents` provisioner (0.17.0+)
+#   - Repository secret: AI_GATEWAY_API_KEY (gateway API key)
+#   - Repository variables: AI_SKILLS_URL, AI_GATEWAY_URL
+#   - Optional variable: AI_MODEL (default model; prefer per-skill model:)
+#
+# Model selection:
+#   - Global default: default-model action input / AI_MODEL
+#   - Per-skill override: model: field below
+
+tools:
+  - pi
+
+scope: repo
+
+skills:
+  - name: code-review-backend
+    on: [pull_request.opened, pull_request.synchronize]
+    autonomy: observe
+    model: claude-sonnet-4-6
+
+  - name: pr-description-generator
+    on: [pull_request.opened]
+    autonomy: suggest
+    model: gpt-4o
+
+# Example workflow snippet (consumer repo):
+#
+# - uses: ai-agent-manager/github-dispatcher-action@latest
+#   with:
+#     bundle-base-url: ${{ vars.AI_SKILLS_URL }}
+#     github-token: ${{ secrets.GITHUB_TOKEN }}
+#     gateway-base-url: ${{ vars.AI_GATEWAY_URL }}
+#     gateway-api-key: ${{ secrets.AI_GATEWAY_API_KEY }}
+#     default-model: ${{ vars.AI_MODEL }}
+#     agent-manager-ref: "0.17.0"

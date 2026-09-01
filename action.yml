@@ -20,18 +20,23 @@ inputs:
     required: false
     default: ""
 
-  anthropic-auth-token:
-    description: "Anthropic API token used to run skills via Claude Code. Required when using Claude Code tools."
+  agent-manager-ref:
+    description: "npm version tag for @ai-agent-manager/cli (e.g. 0.17.0). Defaults to latest."
+    required: false
+    default: "latest"
+
+  gateway-base-url:
+    description: "AI gateway base URL (e.g. https://gateway.example.com). Used by Claude Code and pi."
     required: false
     default: ""
 
-  anthropic-base-url:
-    description: "Override the Anthropic API base URL (e.g. for a proxy). Leave empty for the default."
+  gateway-api-key:
+    description: "Auth hook for the selected harness — gateway API key (Claude Code / pi) or fine-grained GitHub user PAT with Copilot Requests (github-copilot)."
     required: false
     default: ""
 
-  anthropic-model:
-    description: "Override the default model (e.g. 'opusplan'). Leave empty for Claude Code's default."
+  default-model:
+    description: "Default model ID for Claude Code / pi when skill.model is unset. Overridable per skill via model: in ai-skills.yml."
     required: false
     default: ""
 
@@ -40,21 +45,10 @@ inputs:
     required: true
 
   copilot-token:
-    description: "WARNING: Fine-grained GitHub user PAT with Copilot access only. Classic tokens are not supported. Required when using GitHub Copilot tools; this is the only github-copilot-specific limitation. Must be a user token, not the default GITHUB_TOKEN."
+    description: "Optional Copilot override when mixing a gateway harness with native GitHub Copilot in the same repo. Fine-grained user PAT with Copilot Requests only. If unset, github-copilot uses gateway-api-key."
     required: false
     default: ""
 
 runs:
   using: "docker"
   image: "Dockerfile"
-  # Docker actions require explicit env mapping (use UNDERSCORES, not hyphens)
-  # @actions/core's getInput() converts "bundle-base-url" → INPUT_BUNDLE_BASE_URL
-  env:
-    INPUT_CONFIG_PATH: ${{ inputs.config-path }}
-    INPUT_BUNDLE_BASE_URL: ${{ inputs.bundle-base-url }}
-    INPUT_BUNDLE_ACCESS_TOKEN: ${{ inputs.bundle-access-token }}
-    INPUT_ANTHROPIC_AUTH_TOKEN: ${{ inputs.anthropic-auth-token }}
-    INPUT_ANTHROPIC_BASE_URL: ${{ inputs.anthropic-base-url }}
-    INPUT_ANTHROPIC_MODEL: ${{ inputs.anthropic-model }}
-    INPUT_GITHUB_TOKEN: ${{ inputs.github-token }}
-    INPUT_COPILOT_TOKEN: ${{ inputs.copilot-token }}

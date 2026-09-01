@@ -4,14 +4,19 @@ import type { MatchedSkill } from "../types.js";
  * Tool-agnostic budget/limit configuration passed to adapters.
  *
  * Claude Code uses dollar-based budgets; Copilot uses iteration counts.
- * The adapter decides which field to consume. If neither is set on the
- * skill, the adapter falls back to its own default.
+ * Pi print mode has no budget/iteration cap. The adapter decides which
+ * field to consume. If neither is set on the skill, the adapter falls
+ * back to its own default.
  */
 export interface ToolRunOptions {
   /** The matched skill being run — adapters can read any field. */
   skill: MatchedSkill;
+  /** Shared default model. Per-skill configuration takes precedence. */
+  defaultModel: string;
   /** Absolute path to a file containing the full prompt text. */
   promptPath: string;
+  /** Prompt text passed as a CLI argument (Claude Code / Copilot). */
+  prompt: string;
 }
 
 /**
@@ -30,15 +35,30 @@ export interface BudgetHitResult {
 }
 
 /**
- * Subset of ActionInputs that adapters need for env configuration.
- * Avoids coupling adapters to the full action input shape.
+ * Gateway-shaped credentials passed to adapters.
+ *
+ * Consumer workflows should set gateway-* inputs (or repo vars/secrets
+ * AI_GATEWAY_URL / AI_GATEWAY_API_KEY / AI_MODEL).
+ *
+ * Adapters map these to vendor-specific env vars at applyEnv time only.
  */
 export interface ToolEnvInputs {
-  anthropicAuthToken: string;
-  anthropicBaseUrl: string;
-  anthropicModel: string;
+  /** Shared gateway base URL (Claude Code + pi). */
+  gatewayBaseUrl: string;
+  /**
+   * Shared auth hook — gateway API key for Claude/pi, or Copilot user PAT when
+   * github-copilot has no override.
+   */
+  gatewayApiKey: string;
+  /** Shared default model (Claude Code + pi). Overridable per skill. */
+  defaultModel: string;
+  /** Token used for gh CLI / PR comments. */
   githubToken: string;
-  copilotToken: string;
+  /**
+   * Optional Copilot PAT override for mixed gateway + Copilot repos.
+   * When empty, github-copilot falls back to gatewayApiKey.
+   */
+  copilotTokenOverride: string;
 }
 
 /**
@@ -53,17 +73,17 @@ export interface ToolAdapter {
 
   /**
    * Set tool-specific environment variables.
-   * Called once before any skills run. Receives the full ActionInputs
-   * so it can pick what it needs (e.g. anthropicAuthToken for Claude,
-   * githubToken for Copilot).
+   * Called once before any skills run. Receives gateway-shaped inputs and
+   * maps them to the vendor env vars each CLI expects.
    */
   applyEnv(_inputs: ToolEnvInputs): void;
 
   /**
-   * Build the CLI command string to execute.
-   * Separated from execution so it can be unit-tested without execSync.
+   * Build the CLI argv to execute (`[bin, ...args]`).
+   * Separated from execution so it can be unit-tested without execFileSync.
+   * The dispatcher runs this with execFileSync — no shell interpolation.
    */
-  buildCommand(_options: ToolRunOptions): string;
+  buildCommand(_options: ToolRunOptions): string[];
 
   /**
    * Detect whether the tool's output indicates a budget/limit was hit.

@@ -11,19 +11,20 @@ export class ClaudeCodeAdapter implements ToolAdapter {
   readonly name = "claude-code";
 
   applyEnv(inputs: ToolEnvInputs): void {
-    if (!inputs.anthropicAuthToken) {
+    if (!inputs.gatewayApiKey) {
       throw new Error(
-        "anthropic-auth-token is required when using claude-code tools. " +
-          "Set it in your workflow's with: block.",
+        "gateway-api-key is required when using claude-code tools. " +
+          "Set secrets.AI_GATEWAY_API_KEY (gateway API key).",
       );
     }
 
-    process.env.ANTHROPIC_AUTH_TOKEN = inputs.anthropicAuthToken;
-    if (inputs.anthropicBaseUrl) {
-      process.env.ANTHROPIC_BASE_URL = inputs.anthropicBaseUrl;
+    // Last-mile vendor mapping — Claude Code reads ANTHROPIC_* env vars.
+    process.env.ANTHROPIC_AUTH_TOKEN = inputs.gatewayApiKey;
+    if (inputs.gatewayBaseUrl) {
+      process.env.ANTHROPIC_BASE_URL = inputs.gatewayBaseUrl;
     }
-    if (inputs.anthropicModel) {
-      process.env.ANTHROPIC_MODEL = inputs.anthropicModel;
+    if (inputs.defaultModel) {
+      process.env.ANTHROPIC_MODEL = inputs.defaultModel;
     }
 
     // Lock down telemetry and experimental features for predictable runs.
@@ -33,9 +34,14 @@ export class ClaudeCodeAdapter implements ToolAdapter {
     process.env.CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS = "1";
   }
 
-  buildCommand(options: ToolRunOptions): string {
+  buildCommand(options: ToolRunOptions): string[] {
     const budget = options.skill.max_budget_usd ?? DEFAULT_BUDGET_USD;
-    return `claude -p --dangerously-skip-permissions --max-budget-usd ${budget} "$(cat ${options.promptPath})"`;
+    const argv = ["claude", "-p", "--dangerously-skip-permissions", "--max-budget-usd", String(budget)];
+    if (options.skill.model?.trim()) {
+      argv.push("--model", options.skill.model.trim());
+    }
+    argv.push(options.prompt);
+    return argv;
   }
 
   detectBudgetHit(stdout: string, stderr: string): BudgetHitResult {

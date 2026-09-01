@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 
 import * as core from "@actions/core";
 
@@ -14,6 +14,9 @@ interface ExecSyncError extends Error {
   stderr?: Buffer | string;
 }
 
+type ExecuteCommand = typeof execFileSync;
+type ReportError = (_message: string) => void;
+
 /**
  * Run an AI tool in headless mode against a single skill, returning the
  * skill's output plus a flag indicating whether the budget/iteration cap was hit.
@@ -21,20 +24,30 @@ interface ExecSyncError extends Error {
  * If the skill genuinely fails (network, etc.) we return null so the caller
  * can skip it without poisoning the rest of the run.
  */
-function runSkill(skill: MatchedSkill, diff: string): ToolRunResult | null {
+function runSkill(
+  skill: MatchedSkill,
+  diff: string,
+  defaultModel = "",
+  executeCommand: ExecuteCommand = execFileSync,
+  reportError: ReportError = core.error,
+): ToolRunResult | null {
   const adapter = getAdapter(skill.tool);
   const prompt = `Use the ${skill.name} skill. Here is the diff: ${diff}`;
 
   const promptPath = path.join(os.tmpdir(), "prompt.txt");
   fs.writeFileSync(promptPath, prompt);
 
-  const command = adapter.buildCommand({ skill, promptPath });
+  const argv = adapter.buildCommand({ skill, defaultModel, promptPath, prompt });
+  const [bin, ...args] = argv;
+  if (!bin) {
+    throw new Error(`Adapter "${adapter.name}" returned an empty command`);
+  }
 
   let output: string;
   let budgetHit = false;
 
   try {
-    output = execSync(command, {
+    output = executeCommand(bin, args, {
       encoding: "utf-8",
       stdio: ["inherit", "pipe", "pipe"],
     });
@@ -57,7 +70,7 @@ function runSkill(skill: MatchedSkill, diff: string): ToolRunResult | null {
       output = "";
       budgetHit = true;
     } else {
-      core.error(`[run] ${skill.name} failed: ${execError.message}`);
+      reportError(`[run] ${skill.name} failed because the tool exited unsuccessfully.`);
       return null;
     }
   }
@@ -147,10 +160,10 @@ function commitAndPush(skill: MatchedSkill, prNumber: number): void {
  * Run every matched skill in sequence. Failures of one skill do not stop
  * the others — each skill's success/failure is independent.
  */
-function runAll(matched: MatchedSkill[], diff: string, prNumber: number): void {
+function runAll(matched: MatchedSkill[], diff: string, prNumber: number, defaultModel = ""): void {
   for (const skill of matched) {
     core.startGroup(`Running: ${skill.name} (autonomy: ${skill.autonomy})`);
-    const result = runSkill(skill, diff);
+    const result = runSkill(skill, diff, defaultModel);
     if (result !== null) {
       postResult(skill, result.output, prNumber);
     }

@@ -12,30 +12,34 @@ export class GitHubCopilotAdapter implements ToolAdapter {
   readonly name = "github-copilot";
 
   applyEnv(inputs: ToolEnvInputs): void {
-    if (!inputs.copilotToken) {
+    // Prefer explicit Copilot override (mixed gateway + Copilot repos); otherwise
+    // reuse the shared gateway-api-key auth hook (PAT for Copilot-only setups).
+    const token = inputs.copilotTokenOverride.trim() || inputs.gatewayApiKey.trim();
+
+    if (!token) {
       throw new Error(
-        "copilot-token is required when using github-copilot tools. " +
-          "Must be a user PAT with Copilot access, not the default GITHUB_TOKEN. " +
-          "Create a fine-grained PAT with 'Copilot Requests' permission and set it in your workflow.",
+        "gateway-api-key (or copilot-token override) is required when using github-copilot tools. " +
+          "For Copilot-only repos set secrets.AI_GATEWAY_API_KEY to a fine-grained user PAT with " +
+          "Copilot Requests. When mixing a gateway harness with Copilot, keep the gateway key in " +
+          "AI_GATEWAY_API_KEY and set secrets.COPILOT_GITHUB_TOKEN as the copilot-token override.",
       );
     }
 
-    // Copilot checks: COPILOT_GITHUB_TOKEN > GH_TOKEN > GITHUB_TOKEN
-    // Set COPILOT_GITHUB_TOKEN explicitly with the user PAT
-    process.env.COPILOT_GITHUB_TOKEN = inputs.copilotToken;
+    // Last-mile vendor mapping — Copilot CLI checks COPILOT_GITHUB_TOKEN first.
+    process.env.COPILOT_GITHUB_TOKEN = token;
   }
 
-  buildCommand(options: ToolRunOptions): string {
+  buildCommand(options: ToolRunOptions): string[] {
     const maxIterations = options.skill.max_iterations ?? DEFAULT_MAX_ITERATIONS;
     return [
       "copilot",
       "-p",
-      `"$(cat ${options.promptPath})"`,
+      options.prompt,
       "--autopilot",
       "--yolo",
       "--max-autopilot-continues",
       String(maxIterations),
-    ].join(" ");
+    ];
   }
 
   detectBudgetHit(stdout: string, stderr: string): BudgetHitResult {

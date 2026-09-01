@@ -17,3 +17,15 @@ The workflow will:
 5. Create a GitHub Release from that tag with generated release notes.
 6. Force-update the `latest` tag to the same release commit.
 7. Force-update the matching major tag such as `v1` to the same release commit.
+
+For the v2 configuration break, select `major`. This creates and updates `v2`; it does not move the existing `v1` tag.
+
+## Pinned harness CLIs
+
+Dockerfile pins the tool CLIs installed into the action image. When bumping pi:
+
+- `@earendil-works/pi-coding-agent` in the Dockerfile
+- `pi-provider-litellm` in the Dockerfile
+- the provider's image-local path in `src/tools/pi.ts`
+
+must stay compatible (`pi-provider-litellm@2.3.0` requires pi `>= 0.81.0`). Update both in the same change and note the versions in the README pi section.
