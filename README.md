@@ -151,6 +151,8 @@ pi routes model calls through the configured gateway. Print mode has no budget o
 
 The action image pins both `@earendil-works/pi-coding-agent` (currently `0.84.4`) and `pi-provider-litellm` (currently `2.3.0`). Pi loads the provider from the image instead of downloading it at runtime. Bump both packages together because provider `2.3.0` requires pi `>= 0.81.0`.
 
+The image installs these packages globally with npm's default `/usr/local` prefix, so the adapter's fixed provider path is `/usr/local/lib/node_modules/pi-provider-litellm/dist/index.js`. The Docker build fails if that entry point cannot be resolved or if `pi --version` fails. Keep the prefix and path in sync when changing the base image or npm configuration. The global install uses `--legacy-peer-deps` because pi loads the provider with its bundled package instances; this avoids adding unused floating peer copies to the image.
+
 ```yaml
 # .github/ai-skills.yml
 tools:
