@@ -121,7 +121,7 @@ async function run(): Promise<void> {
     const diff = fs.readFileSync(diffPath, "utf-8");
 
     // 5. Run every matched skill and post its result.
-    runAll(matched, diff, prNumber, gateway.defaultModel);
+    await runAll(matched, diff, prNumber, gateway.defaultModel);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     core.setFailed(message);
