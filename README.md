@@ -168,7 +168,7 @@ skills:
     model: gpt-4o
 ```
 
-Required settings: `AI_SKILLS_URL`, `AI_GATEWAY_URL`, `AI_GATEWAY_API_KEY` (gateway API key). Optional: `AI_MODEL` or per-skill `model:`. Prefer pinning `agent-manager-ref` to a release that includes the `agents` provisioner (for example `0.17.0`). Consumer config uses `tools: [pi]`; the dispatcher passes agent-manager's `agents` provisioner so skills land in `.agents/skills/`.
+Required settings: `AI_SKILLS_URL`, `AI_GATEWAY_URL`, `AI_GATEWAY_API_KEY` (gateway API key), and a model via `AI_MODEL` (`default-model`) or every Pi skill's `model:` field. A per-skill `model:` overrides `default-model`; the action fails before launching Pi if neither is configured. Prefer pinning `agent-manager-ref` to a release that includes the `agents` provisioner (for example `0.17.0`). Consumer config uses `tools: [pi]`; the dispatcher passes agent-manager's `agents` provisioner so skills land in `.agents/skills/`.
 
 See also `examples/04-ai-skills-pi.yml`.
 
@@ -180,17 +180,17 @@ See also `examples/03b-ai-skills-mixed-tools.yml`.
 
 ## Inputs
 
-| Name                  | Required | Default                 | Description                                                              |
-| --------------------- | -------- | ----------------------- | ------------------------------------------------------------------------ |
-| `config-path`         | no       | `.github/ai-skills.yml` | Path to the skill manifest in your repo.                                 |
-| `bundle-base-url`     | yes      | —                       | Skill bundle base URL.                                                   |
-| `bundle-access-token` | no       | —                       | Bearer token for authenticated bundle servers (`AGENTMAN_ACCESS_TOKEN`). |
-| `agent-manager-ref`   | no       | `latest`                | npm version tag for `@ai-agent-manager/cli`.                             |
-| `gateway-base-url`    | no       | —                       | Shared AI gateway URL (Claude Code + pi).                                |
-| `gateway-api-key`     | no       | —                       | Shared auth hook (gateway API key or Copilot PAT).                       |
-| `default-model`       | no       | —                       | Default model for Claude Code / pi; prefer per-skill `model:`.           |
-| `github-token`        | yes      | —                       | Token used to post PR comments and edit PR descriptions.                 |
-| `copilot-token`       | no       | —                       | Optional Copilot PAT override when mixing gateway + Copilot.             |
+| Name                  | Required | Default                 | Description                                                                   |
+| --------------------- | -------- | ----------------------- | ----------------------------------------------------------------------------- |
+| `config-path`         | no       | `.github/ai-skills.yml` | Path to the skill manifest in your repo.                                      |
+| `bundle-base-url`     | yes      | —                       | Skill bundle base URL.                                                        |
+| `bundle-access-token` | no       | —                       | Bearer token for authenticated bundle servers (`AGENTMAN_ACCESS_TOKEN`).      |
+| `agent-manager-ref`   | no       | `latest`                | npm version tag for `@ai-agent-manager/cli`.                                  |
+| `gateway-base-url`    | no       | —                       | Shared AI gateway URL (Claude Code + pi).                                     |
+| `gateway-api-key`     | no       | —                       | Shared auth hook (gateway API key or Copilot PAT).                            |
+| `default-model`       | no       | —                       | Default model for Claude Code / pi. Pi requires this or a per-skill `model:`. |
+| `github-token`        | yes      | —                       | Token used to post PR comments and edit PR descriptions.                      |
+| `copilot-token`       | no       | —                       | Optional Copilot PAT override when mixing gateway + Copilot.                  |
 
 ### Major-version upgrades
 
@@ -224,7 +224,7 @@ Each skill in `ai-skills.yml` accepts:
 | `on`             | yes      | List of triggers. Supported: `pull_request.opened`, `pull_request.synchronize`, `issue_comment.created`.                 |
 | `autonomy`       | no       | `observe` (default) posts a PR comment. `suggest` updates the PR description. `act` commits changes to the PR branch.    |
 | `tool`           | no       | Per-skill harness: `claude-code`, `github-copilot`, or `pi`. If omitted, the first entry from top-level `tools` is used. |
-| `model`          | no       | Model ID override (especially for pi). Overrides `default-model`.                                                        |
+| `model`          | no       | Model ID override (especially for pi). Overrides `default-model`; Pi requires one of these two model settings.           |
 | `max_budget_usd` | no       | Claude Code budget cap in USD. Defaults to `5` for Claude skills. Unused by pi (print mode has no cap).                  |
 | `max_iterations` | no       | GitHub Copilot iteration cap. Defaults to `10` for Copilot skills.                                                       |
 
