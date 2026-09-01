@@ -1,18 +1,15 @@
-/**
- * First non-empty trimmed string wins.
- */
-function firstNonEmpty(...values: Array<string | undefined>): string {
-  for (const value of values) {
-    const trimmed = value?.trim() ?? "";
-    if (trimmed) return trimmed;
-  }
-  return "";
-}
-
 export interface RawGatewayInputs {
   gatewayBaseUrl?: string;
   gatewayApiKey?: string;
   defaultModel?: string;
+  /** Deprecated Claude aliases */
+  anthropicBaseUrl?: string;
+  anthropicAuthToken?: string;
+  anthropicModel?: string;
+  /** Deprecated pi / LiteLLM aliases */
+  litellmBaseUrl?: string;
+  litellmApiKey?: string;
+  piModel?: string;
   /** Optional Copilot PAT override for mixed-harness repos */
   copilotToken?: string;
 }
@@ -34,17 +31,29 @@ export interface ResolvedGatewayInputs {
   copilotTokenOverride: string;
 }
 
+function trimInput(value?: string): string {
+  return value?.trim() ?? "";
+}
+
+function firstNonEmpty(...values: Array<string | undefined>): string {
+  for (const value of values) {
+    const trimmed = trimInput(value);
+    if (trimmed) return trimmed;
+  }
+  return "";
+}
+
 /**
- * Trim gateway action inputs into one credential set. Adapters map these to
- * vendor env vars at applyEnv time.
+ * Collapse canonical and deprecated action inputs into one credential set.
+ * Precedence is gateway-*, then LiteLLM/pi aliases, then Anthropic aliases.
  */
 function resolveGatewayInputs(raw: RawGatewayInputs): ResolvedGatewayInputs {
   return {
-    gatewayBaseUrl: firstNonEmpty(raw.gatewayBaseUrl),
-    gatewayApiKey: firstNonEmpty(raw.gatewayApiKey),
-    defaultModel: firstNonEmpty(raw.defaultModel),
-    copilotTokenOverride: firstNonEmpty(raw.copilotToken),
+    gatewayBaseUrl: firstNonEmpty(raw.gatewayBaseUrl, raw.litellmBaseUrl, raw.anthropicBaseUrl),
+    gatewayApiKey: firstNonEmpty(raw.gatewayApiKey, raw.litellmApiKey, raw.anthropicAuthToken),
+    defaultModel: firstNonEmpty(raw.defaultModel, raw.piModel, raw.anthropicModel),
+    copilotTokenOverride: trimInput(raw.copilotToken),
   };
 }
 
-export { firstNonEmpty, resolveGatewayInputs };
+export { resolveGatewayInputs };

@@ -2,16 +2,8 @@ import type { ToolAdapter, ToolRunOptions, ToolEnvInputs, BudgetHitResult } from
 import type { MatchedSkill } from "../types.js";
 
 /**
- * Default `--model` when neither skill.model nor default-model is set.
- * `litellm/` is the provider id registered by pi-provider-litellm.
- */
-const DEFAULT_MODEL = "litellm/claude-sonnet-4-6";
-
-/**
- * Pi gateway provider extension loaded via `pi -e`.
- * Implementation is LiteLLM/OpenAI-compatible today (`LITELLM_*` env vars).
- * Keep in sync with `@earendil-works/pi-coding-agent` in the Dockerfile —
- * 2.0.5 requires pi >= 0.81.0.
+ * Pinned pi gateway provider (`pi -e`). Keep in sync with
+ * `@earendil-works/pi-coding-agent` in the Dockerfile — 2.0.5 needs pi >= 0.81.0.
  */
 const PI_GATEWAY_EXTENSION = "npm:pi-provider-litellm@2.0.5";
 
@@ -35,28 +27,16 @@ export class PiAdapter implements ToolAdapter {
       );
     }
 
-    // Last-mile mapping for the current gateway extension.
+    // Last-mile vendor mapping — pi-provider-litellm reads LITELLM_* env vars.
     process.env.LITELLM_BASE_URL = baseUrl.replace(/\/+$/, "");
     process.env.LITELLM_API_KEY = apiKey;
-
-    // Disable pi install telemetry in CI.
     process.env.PI_TELEMETRY = "0";
-
     this.defaultModel = inputs.defaultModel.trim();
   }
 
-  private resolveModel(skill: MatchedSkill): string {
-    const raw = skill.model?.trim() || this.defaultModel;
-    if (raw) {
-      return raw.includes("/") ? raw : `litellm/${raw}`;
-    }
-    return DEFAULT_MODEL;
-  }
-
   buildCommand(options: ToolRunOptions): string[] {
-    const modelFlag = this.resolveModel(options.skill);
-
-    return [
+    const model = options.skill.model?.trim() || this.defaultModel;
+    const argv = [
       "pi",
       "-e",
       PI_GATEWAY_EXTENSION,
@@ -65,12 +45,14 @@ export class PiAdapter implements ToolAdapter {
       // project-local files. See README caution (fork PRs / .pi/ settings).
       "-a",
       "--no-session",
-      "--model",
-      modelFlag,
       "--skill",
-      options.skill.name,
+      `.agents/skills/${options.skill.name}`,
       `@${options.promptPath}`,
     ];
+    if (model) {
+      argv.splice(argv.indexOf("--skill"), 0, "--model", model);
+    }
+    return argv;
   }
 
   detectBudgetHit(): BudgetHitResult {

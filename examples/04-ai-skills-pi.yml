@@ -12,7 +12,6 @@
 # Model selection:
 #   - Global default: default-model action input / AI_MODEL
 #   - Per-skill override: model: field below
-#   - Models are discovered from GET {AI_GATEWAY_URL}/v1/models
 
 tools:
   - pi
@@ -30,7 +29,6 @@ skills:
     autonomy: suggest
     model: gpt-4o
 
----
 # Example workflow snippet (consumer repo):
 #
 # - uses: ai-agent-manager/github-dispatcher-action@latest

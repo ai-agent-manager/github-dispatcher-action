@@ -147,7 +147,7 @@ See also `examples/04-ai-skills-copilot-uc2.yml`.
 
 ### pi
 
-pi routes model calls through the configured gateway (`gateway-base-url` / `gateway-api-key`). The current implementation loads [`pi-provider-litellm`](https://pi.dev/packages/pi-provider-litellm) and maps those inputs to `LITELLM_BASE_URL` / `LITELLM_API_KEY`. Do not append `/v1` to the gateway URL. Print mode has no budget or iteration cap.
+pi routes model calls through the configured gateway. Print mode has no budget or iteration cap.
 
 The action pins both `@earendil-works/pi-coding-agent` (Dockerfile, currently `0.84.1`) and `npm:pi-provider-litellm@2.0.5` (`src/tools/pi.ts`). Bump them together — `2.0.5` requires pi `>= 0.81.0`.
 
@@ -191,6 +191,8 @@ See also `examples/03b-ai-skills-mixed-tools.yml`.
 | `default-model`       | no       | —                       | Default model for Claude Code / pi; prefer per-skill `model:`.           |
 | `github-token`        | yes      | —                       | Token used to post PR comments and edit PR descriptions.                 |
 | `copilot-token`       | no       | —                       | Optional Copilot PAT override when mixing gateway + Copilot.             |
+
+For v2 migration, the deprecated `anthropic-*`, `litellm-*`, and `pi-model` inputs remain accepted. Canonical `gateway-*` and `default-model` values take precedence when both forms are set.
 
 ### Authenticated bundle servers
 

@@ -49,6 +49,22 @@ test("buildCommand defaults budget to 5", () => {
   assert.strictEqual(cmd[cmd.indexOf("--max-budget-usd") + 1], "5");
 });
 
+test("buildCommand uses the per-skill model when configured", () => {
+  const cmd = adapter.buildCommand({
+    ...runOpts,
+    skill: {
+      name: "review",
+      autonomy: "observe",
+      trigger: "pull_request.opened",
+      tool: "claude-code",
+      model: "claude-opus-4-1",
+    },
+  });
+
+  assert.strictEqual(cmd[cmd.indexOf("--model") + 1], "claude-opus-4-1");
+  assert.strictEqual(cmd.at(-1), runOpts.prompt);
+});
+
 test("detectBudgetHit returns true for budget pattern in stdout", () => {
   assert.strictEqual(adapter.detectBudgetHit("Error: Exceeded USD budget (5.00)", "").hit, true);
 });

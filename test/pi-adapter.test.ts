@@ -18,7 +18,7 @@ const emptyEnv = {
   copilotTokenOverride: "",
 };
 
-test("applyEnv maps gateway credentials to the current pi gateway extension env vars", () => {
+test("applyEnv maps gateway credentials for the pinned pi provider extension", () => {
   const prevBase = process.env.LITELLM_BASE_URL;
   const prevKey = process.env.LITELLM_API_KEY;
   const prevTelemetry = process.env.PI_TELEMETRY;
@@ -43,7 +43,7 @@ test("applyEnv maps gateway credentials to the current pi gateway extension env 
       tool: "pi",
     },
   });
-  assert.strictEqual(cmd[cmd.indexOf("--model") + 1], "litellm/claude-sonnet-4-6");
+  assert.strictEqual(cmd[cmd.indexOf("--model") + 1], "claude-sonnet-4-6");
 
   if (prevBase === undefined) delete process.env.LITELLM_BASE_URL;
   else process.env.LITELLM_BASE_URL = prevBase;
@@ -64,7 +64,7 @@ test("applyEnv throws when gateway-base-url is missing", () => {
   );
 });
 
-test("buildCommand loads the gateway extension and skill by name", () => {
+test("buildCommand loads the gateway extension and installed skill path", () => {
   const cmd = adapter.buildCommand({
     ...runOpts,
     skill: {
@@ -78,15 +78,15 @@ test("buildCommand loads the gateway extension and skill by name", () => {
 
   assert.strictEqual(cmd[0], "pi");
   assert.strictEqual(cmd[cmd.indexOf("-e") + 1], "npm:pi-provider-litellm@2.0.5");
-  assert.strictEqual(cmd[cmd.indexOf("--model") + 1], "litellm/gpt-4o");
-  assert.strictEqual(cmd[cmd.indexOf("--skill") + 1], "code-review-backend");
+  assert.strictEqual(cmd[cmd.indexOf("--model") + 1], "gpt-4o");
+  assert.strictEqual(cmd[cmd.indexOf("--skill") + 1], ".agents/skills/code-review-backend");
   assert.ok(cmd.includes("-p"));
   assert.ok(cmd.includes("-a"));
   assert.ok(cmd.includes("--no-session"));
   assert.strictEqual(cmd.at(-1), `@${runOpts.promptPath}`);
 });
 
-test("buildCommand defaults model to litellm/claude-sonnet-4-6", () => {
+test("buildCommand omits --model when none is configured", () => {
   const fresh = new PiAdapter();
   const cmd = fresh.buildCommand({
     ...runOpts,
@@ -98,5 +98,5 @@ test("buildCommand defaults model to litellm/claude-sonnet-4-6", () => {
     },
   });
 
-  assert.strictEqual(cmd[cmd.indexOf("--model") + 1], "litellm/claude-sonnet-4-6");
+  assert.ok(!cmd.includes("--model"));
 });
