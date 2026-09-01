@@ -71,5 +71,17 @@ function resolveConfiguredToolNames(configTools: unknown, skills: SkillsConfig["
   return [...resolved];
 }
 
-export { getAdapter, resolveConfiguredToolNames, resolveToolName, validateToolName };
+function validateToolCredentials(toolNames: readonly string[], copilotToken: string): void {
+  const usesCopilot = toolNames.includes("github-copilot");
+  const usesGatewayHarness = toolNames.includes("claude-code") || toolNames.includes("pi");
+
+  if (usesCopilot && usesGatewayHarness && !copilotToken.trim()) {
+    throw new Error(
+      "copilot-token is required when mixing github-copilot with Claude Code or Pi. " +
+        "Set a separate fine-grained GitHub PAT with the Copilot Requests permission.",
+    );
+  }
+}
+
+export { getAdapter, resolveConfiguredToolNames, resolveToolName, validateToolCredentials, validateToolName };
 export type { ToolAdapter } from "./types.js";
