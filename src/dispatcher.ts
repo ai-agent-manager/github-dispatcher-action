@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { execFileSync, execSync } from "node:child_process";
+import { execSync, spawn } from "node:child_process";
 
 import * as core from "@actions/core";
 
@@ -9,13 +9,65 @@ import type { MatchedSkill } from "./types.js";
 import type { ToolRunResult } from "./tools/types.js";
 import { getAdapter } from "./tools/index.js";
 
-interface ExecSyncError extends Error {
-  stdout?: Buffer | string;
-  stderr?: Buffer | string;
+const MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
+const DETECTION_TAIL_BYTES = 64 * 1024;
+
+interface CommandResult {
+  stdout: string;
+  stderr: string;
+  stdoutForDetection: string;
+  stderrForDetection: string;
+  outputTruncated: boolean;
+  exitCode: number | null;
 }
 
-type ExecuteCommand = typeof execFileSync;
+type ExecuteCommand = (_bin: string, _args: string[]) => Promise<CommandResult>;
 type ReportError = (_message: string) => void;
+
+function retainOutput(current: Buffer, chunk: Buffer, limit: number): Buffer {
+  if (current.length >= limit) {
+    return current;
+  }
+
+  return Buffer.concat([current, chunk.subarray(0, limit - current.length)]);
+}
+
+function retainTail(current: Buffer, chunk: Buffer): Buffer {
+  const combined = Buffer.concat([current, chunk]);
+  return combined.subarray(Math.max(0, combined.length - DETECTION_TAIL_BYTES));
+}
+
+function executeCommand(bin: string, args: string[]): Promise<CommandResult> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(bin, args, { stdio: ["inherit", "pipe", "pipe"] });
+    let stdout: Buffer<ArrayBufferLike> = Buffer.alloc(0);
+    let stderr: Buffer<ArrayBufferLike> = Buffer.alloc(0);
+    let stdoutTail: Buffer<ArrayBufferLike> = Buffer.alloc(0);
+    let stderrTail: Buffer<ArrayBufferLike> = Buffer.alloc(0);
+    let outputTruncated = false;
+
+    child.stdout.on("data", (chunk: Buffer) => {
+      outputTruncated ||= stdout.length + chunk.length > MAX_OUTPUT_BYTES;
+      stdout = retainOutput(stdout, chunk, MAX_OUTPUT_BYTES);
+      stdoutTail = retainTail(stdoutTail, chunk);
+    });
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr = retainOutput(stderr, chunk, MAX_OUTPUT_BYTES);
+      stderrTail = retainTail(stderrTail, chunk);
+    });
+    child.on("error", reject);
+    child.on("close", (exitCode) => {
+      resolve({
+        stdout: stdout.toString("utf-8"),
+        stderr: stderr.toString("utf-8"),
+        stdoutForDetection: Buffer.concat([stdout, stdoutTail]).toString("utf-8"),
+        stderrForDetection: Buffer.concat([stderr, stderrTail]).toString("utf-8"),
+        outputTruncated,
+        exitCode,
+      });
+    });
+  });
+}
 
 /**
  * Run an AI tool in headless mode against a single skill, returning the
@@ -24,13 +76,13 @@ type ReportError = (_message: string) => void;
  * If the skill genuinely fails (network, etc.) we return null so the caller
  * can skip it without poisoning the rest of the run.
  */
-function runSkill(
+async function runSkill(
   skill: MatchedSkill,
   diff: string,
   defaultModel = "",
-  executeCommand: ExecuteCommand = execFileSync,
+  runCommand: ExecuteCommand = executeCommand,
   reportError: ReportError = core.error,
-): ToolRunResult | null {
+): Promise<ToolRunResult | null> {
   const adapter = getAdapter(skill.tool);
   const prompt = `Use the ${skill.name} skill. Here is the diff: ${diff}`;
 
@@ -43,39 +95,27 @@ function runSkill(
     throw new Error(`Adapter "${adapter.name}" returned an empty command`);
   }
 
-  let output: string;
-  let budgetHit = false;
-
+  let commandResult: CommandResult;
   try {
-    output = executeCommand(bin, args, {
-      encoding: "utf-8",
-      stdio: ["inherit", "pipe", "pipe"],
-    });
+    commandResult = await runCommand(bin, args);
+  } catch {
+    reportError(`[run] ${skill.name} failed because the tool could not start.`);
+    return null;
+  }
 
-    // Check if budget/iteration limit was hit (tool-specific detection)
-    const result = adapter.detectBudgetHit(output, "");
-    if (result.hit) {
-      budgetHit = true;
-      output = "";
-    }
-  } catch (error) {
-    const execError = error as ExecSyncError;
-    // Defensive — handle a future CLI version that signals budget hit via
-    // non-zero exit + stderr instead of the current "exit 0 + stdout" format.
-    const stdout = execError.stdout?.toString() ?? "";
-    const stderr = execError.stderr?.toString() ?? "";
+  const budgetHit = adapter.detectBudgetHit(commandResult.stdoutForDetection, commandResult.stderrForDetection).hit;
+  if (commandResult.exitCode !== 0 && !budgetHit) {
+    reportError(`[run] ${skill.name} failed because the tool exited unsuccessfully.`);
+    return null;
+  }
 
-    const result = adapter.detectBudgetHit(stdout, stderr);
-    if (result.hit) {
-      output = "";
-      budgetHit = true;
-    } else {
-      reportError(`[run] ${skill.name} failed because the tool exited unsuccessfully.`);
-      return null;
-    }
+  let output = commandResult.stdout;
+  if (commandResult.outputTruncated) {
+    output += `\n\n[Output truncated after ${MAX_OUTPUT_BYTES / (1024 * 1024)} MiB; remaining tool output was discarded.]`;
   }
 
   if (budgetHit) {
+    output = commandResult.outputTruncated ? `${output}\n\n` : "";
     output += adapter.formatBudgetWarning(skill);
     const budgetDetail =
       skill.tool === "github-copilot"
@@ -160,10 +200,10 @@ function commitAndPush(skill: MatchedSkill, prNumber: number): void {
  * Run every matched skill in sequence. Failures of one skill do not stop
  * the others — each skill's success/failure is independent.
  */
-function runAll(matched: MatchedSkill[], diff: string, prNumber: number, defaultModel = ""): void {
+async function runAll(matched: MatchedSkill[], diff: string, prNumber: number, defaultModel = ""): Promise<void> {
   for (const skill of matched) {
     core.startGroup(`Running: ${skill.name} (autonomy: ${skill.autonomy})`);
-    const result = runSkill(skill, diff, defaultModel);
+    const result = await runSkill(skill, diff, defaultModel);
     if (result !== null) {
       postResult(skill, result.output, prNumber);
     }
@@ -171,4 +211,4 @@ function runAll(matched: MatchedSkill[], diff: string, prNumber: number, default
   }
 }
 
-export { runSkill, postResult, runAll };
+export { executeCommand, runSkill, postResult, runAll };
