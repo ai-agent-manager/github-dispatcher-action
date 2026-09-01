@@ -31,7 +31,7 @@ skills:
 
 # Example workflow snippet (consumer repo):
 #
-# - uses: ai-agent-manager/github-dispatcher-action@latest
+# - uses: ai-agent-manager/github-dispatcher-action@v2
 #   with:
 #     bundle-base-url: ${{ vars.AI_SKILLS_URL }}
 #     github-token: ${{ secrets.GITHUB_TOKEN }}

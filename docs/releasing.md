@@ -18,7 +18,15 @@ The workflow will:
 6. Force-update the `latest` tag to the same release commit.
 7. Force-update the matching major tag such as `v1` to the same release commit.
 
-For the v2 configuration break, select `major`. This creates and updates `v2`; it does not move the existing `v1` tag.
+## Major releases
+
+Selecting `major` creates a new major release line. The workflow moves `latest` and the new major tag to the release commit. Existing major tags do not move, so consumers pinned to the previous major version remain on that compatible release line.
+
+Before publishing a major release:
+
+1. Update README examples to use the new major tag.
+2. Document breaking changes and the required migration steps.
+3. Remind `@latest` consumers to pin their current major tag if they are not ready to migrate.
 
 ## Pinned harness CLIs
 

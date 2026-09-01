@@ -82,7 +82,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh pr checkout ${{ github.event.issue.number }}
 
-      - uses: ai-agent-manager/github-dispatcher-action@latest
+      - uses: ai-agent-manager/github-dispatcher-action@v2
         with:
           bundle-base-url: ${{ vars.AI_SKILLS_URL }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -192,9 +192,13 @@ See also `examples/03b-ai-skills-mixed-tools.yml`.
 | `github-token`        | yes      | —                       | Token used to post PR comments and edit PR descriptions.                 |
 | `copilot-token`       | no       | —                       | Optional Copilot PAT override when mixing gateway + Copilot.             |
 
-### Migrating to v2
+### Major-version upgrades
 
-Version 2 is a direct configuration break. It supports only `gateway-base-url`, `gateway-api-key`, and `default-model` for model access. The v1 `anthropic-*`, `litellm-*`, and `pi-model` inputs are not accepted and have no compatibility aliases in v2. Workflows that still use the v1 input model must remain pinned to v1 until they migrate.
+Pin workflows to a major tag such as `@v2` rather than `@latest`. Major tags stay on their own compatible release line, while `latest` follows the newest release and may cross a breaking-change boundary.
+
+Before moving to a new major version, review its migration notes and update the workflow inputs. Workflows that need more time can remain on the previous major tag.
+
+For the v1-to-v2 upgrade, version 2 supports only `gateway-base-url`, `gateway-api-key`, and `default-model` for model access. The v1 `anthropic-*`, `litellm-*`, and `pi-model` inputs are not accepted and have no compatibility aliases in v2. Keep workflows that still use those inputs pinned to `@v1` until they migrate.
 
 ### Authenticated bundle servers
 
