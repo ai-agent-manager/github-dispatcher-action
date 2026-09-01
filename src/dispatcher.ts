@@ -33,11 +33,11 @@ function runSkill(
 ): ToolRunResult | null {
   const adapter = getAdapter(skill.tool);
   const prompt = `Use the ${skill.name} skill. Here is the diff: ${diff}`;
-
-  const promptPath = path.join(os.tmpdir(), "prompt.txt");
+  const promptDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "ai-skill-"));
+  const promptPath = path.join(promptDirectory, "prompt.txt");
   fs.writeFileSync(promptPath, prompt);
 
-  const argv = adapter.buildCommand({ skill, defaultModel, promptPath, prompt });
+  const argv = adapter.buildCommand({ skill, defaultModel, promptPath });
   const [bin, ...args] = argv;
   if (!bin) {
     throw new Error(`Adapter "${adapter.name}" returned an empty command`);
@@ -47,32 +47,37 @@ function runSkill(
   let budgetHit = false;
 
   try {
-    output = executeCommand(bin, args, {
-      encoding: "utf-8",
-      stdio: ["inherit", "pipe", "pipe"],
-    });
+    try {
+      output = executeCommand(bin, args, {
+        encoding: "utf-8",
+        input: skill.tool === "claude-code" ? prompt : undefined,
+        stdio: ["pipe", "pipe", "pipe"],
+      });
 
-    // Check if budget/iteration limit was hit (tool-specific detection)
-    const result = adapter.detectBudgetHit(output, "");
-    if (result.hit) {
-      budgetHit = true;
-      output = "";
-    }
-  } catch (error) {
-    const execError = error as ExecSyncError;
-    // Defensive — handle a future CLI version that signals budget hit via
-    // non-zero exit + stderr instead of the current "exit 0 + stdout" format.
-    const stdout = execError.stdout?.toString() ?? "";
-    const stderr = execError.stderr?.toString() ?? "";
+      // Check if budget/iteration limit was hit (tool-specific detection)
+      const result = adapter.detectBudgetHit(output, "");
+      if (result.hit) {
+        budgetHit = true;
+        output = "";
+      }
+    } catch (error) {
+      const execError = error as ExecSyncError;
+      // Defensive — handle a future CLI version that signals budget hit via
+      // non-zero exit + stderr instead of the current "exit 0 + stdout" format.
+      const stdout = execError.stdout?.toString() ?? "";
+      const stderr = execError.stderr?.toString() ?? "";
 
-    const result = adapter.detectBudgetHit(stdout, stderr);
-    if (result.hit) {
-      output = "";
-      budgetHit = true;
-    } else {
-      reportError(`[run] ${skill.name} failed because the tool exited unsuccessfully.`);
-      return null;
+      const result = adapter.detectBudgetHit(stdout, stderr);
+      if (result.hit) {
+        output = "";
+        budgetHit = true;
+      } else {
+        reportError(`[run] ${skill.name} failed because the tool exited unsuccessfully.`);
+        return null;
+      }
     }
+  } finally {
+    fs.rmSync(promptDirectory, { recursive: true, force: true });
   }
 
   if (budgetHit) {

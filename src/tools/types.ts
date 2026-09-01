@@ -15,8 +15,6 @@ export interface ToolRunOptions {
   defaultModel: string;
   /** Absolute path to a file containing the full prompt text. */
   promptPath: string;
-  /** Prompt text passed as a CLI argument (Claude Code / Copilot). */
-  prompt: string;
 }
 
 /**

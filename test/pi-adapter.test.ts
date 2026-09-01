@@ -8,7 +8,6 @@ const adapter = new PiAdapter();
 const runOpts = {
   defaultModel: "",
   promptPath: "/tmp/prompt.txt",
-  prompt: "Use the review skill.",
 };
 
 const emptyEnv = {
