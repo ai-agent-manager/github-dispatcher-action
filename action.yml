@@ -36,22 +36,7 @@ inputs:
     default: ""
 
   default-model:
-    description: "Default model ID for Claude Code / pi when skill.model is unset. Prefer this over anthropic-model / pi-model. Overridable per skill via model: in ai-skills.yml."
-    required: false
-    default: ""
-
-  anthropic-auth-token:
-    description: "Deprecated alias for gateway-api-key (Claude Code). Still accepted for backwards compatibility."
-    required: false
-    default: ""
-
-  anthropic-base-url:
-    description: "Deprecated alias for gateway-base-url (Claude Code). Still accepted for backwards compatibility."
-    required: false
-    default: ""
-
-  anthropic-model:
-    description: "Deprecated alias for default-model (Claude Code). Still accepted for backwards compatibility."
+    description: "Default model ID for Claude Code / pi when skill.model is unset. Overridable per skill via model: in ai-skills.yml."
     required: false
     default: ""
 
@@ -61,21 +46,6 @@ inputs:
 
   copilot-token:
     description: "Optional Copilot override when mixing a gateway harness with native GitHub Copilot in the same repo. Fine-grained user PAT with Copilot Requests only. If unset, github-copilot uses gateway-api-key."
-    required: false
-    default: ""
-
-  litellm-base-url:
-    description: "Deprecated alias for gateway-base-url (pi). Still accepted for backwards compatibility."
-    required: false
-    default: ""
-
-  litellm-api-key:
-    description: "Deprecated alias for gateway-api-key (pi). Still accepted for backwards compatibility."
-    required: false
-    default: ""
-
-  pi-model:
-    description: "Deprecated alias for default-model (pi). Still accepted for backwards compatibility."
     required: false
     default: ""
 

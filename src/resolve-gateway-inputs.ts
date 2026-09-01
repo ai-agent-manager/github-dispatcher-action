@@ -2,14 +2,6 @@ export interface RawGatewayInputs {
   gatewayBaseUrl?: string;
   gatewayApiKey?: string;
   defaultModel?: string;
-  /** Deprecated Claude aliases */
-  anthropicBaseUrl?: string;
-  anthropicAuthToken?: string;
-  anthropicModel?: string;
-  /** Deprecated pi / LiteLLM aliases */
-  litellmBaseUrl?: string;
-  litellmApiKey?: string;
-  piModel?: string;
   /** Optional Copilot PAT override for mixed-harness repos */
   copilotToken?: string;
 }
@@ -35,23 +27,14 @@ function trimInput(value?: string): string {
   return value?.trim() ?? "";
 }
 
-function firstNonEmpty(...values: Array<string | undefined>): string {
-  for (const value of values) {
-    const trimmed = trimInput(value);
-    if (trimmed) return trimmed;
-  }
-  return "";
-}
-
 /**
- * Collapse canonical and deprecated action inputs into one credential set.
- * Precedence is gateway-*, then LiteLLM/pi aliases, then Anthropic aliases.
+ * Trim the shared v2 action inputs into one harness-neutral configuration.
  */
 function resolveGatewayInputs(raw: RawGatewayInputs): ResolvedGatewayInputs {
   return {
-    gatewayBaseUrl: firstNonEmpty(raw.gatewayBaseUrl, raw.litellmBaseUrl, raw.anthropicBaseUrl),
-    gatewayApiKey: firstNonEmpty(raw.gatewayApiKey, raw.litellmApiKey, raw.anthropicAuthToken),
-    defaultModel: firstNonEmpty(raw.defaultModel, raw.piModel, raw.anthropicModel),
+    gatewayBaseUrl: trimInput(raw.gatewayBaseUrl),
+    gatewayApiKey: trimInput(raw.gatewayApiKey),
+    defaultModel: trimInput(raw.defaultModel),
     copilotTokenOverride: trimInput(raw.copilotToken),
   };
 }

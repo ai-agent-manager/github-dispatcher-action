@@ -38,11 +38,15 @@ test("resolveInstallTools maps consumer pi to the agents provisioner", () => {
 });
 
 test("resolveInstallTools does not treat agents as a consumer tool id", () => {
-  assert.deepStrictEqual(resolveInstallTools(["agents"]), ["claude-code"]);
+  assert.throws(() => resolveInstallTools(["agents"]), /Unknown tool "agents"/);
 });
 
 test("resolveInstallTools installs to both trees for mixed Claude/pi harnesses", () => {
   assert.deepStrictEqual(resolveInstallTools(["claude-code", "pi"]), ["claude-code", "agents"]);
   assert.deepStrictEqual(resolveInstallTools(["pi", "github-copilot"]), ["claude-code", "agents"]);
   assert.deepStrictEqual(resolveInstallTools(["claude-code"], [{ name: "s", tool: "pi" }]), ["claude-code", "agents"]);
+  assert.deepStrictEqual(resolveInstallTools(undefined, [{ name: "pi", tool: "pi" }, { name: "default" }]), [
+    "claude-code",
+    "agents",
+  ]);
 });

@@ -6,6 +6,7 @@ import { PiAdapter } from "../src/tools/pi.js";
 const adapter = new PiAdapter();
 
 const runOpts = {
+  defaultModel: "",
   promptPath: "/tmp/prompt.txt",
   prompt: "Use the review skill.",
 };
@@ -36,6 +37,7 @@ test("applyEnv maps gateway credentials for the pinned pi provider extension", (
 
   const cmd = adapter.buildCommand({
     ...runOpts,
+    defaultModel: "claude-sonnet-4-6",
     skill: {
       name: "review",
       autonomy: "observe",
@@ -77,7 +79,7 @@ test("buildCommand loads the gateway extension and installed skill path", () => 
   });
 
   assert.strictEqual(cmd[0], "pi");
-  assert.strictEqual(cmd[cmd.indexOf("-e") + 1], "npm:pi-provider-litellm@2.0.5");
+  assert.strictEqual(cmd[cmd.indexOf("-e") + 1], "/usr/local/lib/node_modules/pi-provider-litellm/dist/index.js");
   assert.strictEqual(cmd[cmd.indexOf("--model") + 1], "gpt-4o");
   assert.strictEqual(cmd[cmd.indexOf("--skill") + 1], ".agents/skills/code-review-backend");
   assert.ok(cmd.includes("-p"));

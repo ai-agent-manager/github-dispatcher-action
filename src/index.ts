@@ -23,14 +23,8 @@ interface ActionInputs {
   gatewayBaseUrl: string;
   gatewayApiKey: string;
   defaultModel: string;
-  anthropicAuthToken: string;
-  anthropicBaseUrl: string;
-  anthropicModel: string;
   githubToken: string;
   copilotToken: string;
-  litellmBaseUrl: string;
-  litellmApiKey: string;
-  piModel: string;
 }
 
 async function run(): Promise<void> {
@@ -49,14 +43,8 @@ async function run(): Promise<void> {
       gatewayBaseUrl: core.getInput("gateway-base-url"),
       gatewayApiKey: core.getInput("gateway-api-key"),
       defaultModel: core.getInput("default-model"),
-      anthropicAuthToken: core.getInput("anthropic-auth-token"),
-      anthropicBaseUrl: core.getInput("anthropic-base-url"),
-      anthropicModel: core.getInput("anthropic-model"),
       githubToken: core.getInput("github-token", { required: true }),
       copilotToken: core.getInput("copilot-token"),
-      litellmBaseUrl: core.getInput("litellm-base-url"),
-      litellmApiKey: core.getInput("litellm-api-key"),
-      piModel: core.getInput("pi-model"),
     };
 
     const gateway = resolveGatewayInputs(inputs);
@@ -133,7 +121,7 @@ async function run(): Promise<void> {
     const diff = fs.readFileSync(diffPath, "utf-8");
 
     // 5. Run every matched skill and post its result.
-    runAll(matched, diff, prNumber);
+    runAll(matched, diff, prNumber, gateway.defaultModel);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     core.setFailed(message);

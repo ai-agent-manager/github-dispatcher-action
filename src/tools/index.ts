@@ -1,4 +1,5 @@
 import type { ToolAdapter } from "./types.js";
+import type { SkillsConfig } from "../types.js";
 import { ClaudeCodeAdapter } from "./claude-code.js";
 import { GitHubCopilotAdapter } from "./github-copilot.js";
 import { PiAdapter } from "./pi.js";
@@ -42,15 +43,33 @@ function validateToolName(toolName: string, source: string): void {
  * Priority:
  *   1. skill.tool      (per-skill override in ai-skills.yml)
  *   2. config.tools[0] (first item in the global tools list)
- *   3. "claude-code"   (backward-compatible default)
+ *   3. "claude-code"   (default when no tool is configured)
  */
 function resolveToolName(skillTool: string | undefined, configTools: unknown): string {
   if (skillTool) return skillTool;
+  if (typeof configTools === "string") return configTools;
   if (Array.isArray(configTools) && typeof configTools[0] === "string") {
     return configTools[0];
   }
   return "claude-code";
 }
 
-export { getAdapter, resolveToolName, validateToolName };
+function resolveConfiguredToolNames(configTools: unknown, skills: SkillsConfig["skills"] = []): string[] {
+  const configuredTools = Array.isArray(configTools)
+    ? configTools.filter((tool): tool is string => typeof tool === "string")
+    : typeof configTools === "string"
+      ? [configTools]
+      : [];
+  const resolved = new Set(configuredTools);
+
+  for (const skill of skills ?? []) {
+    const skillTool = typeof skill === "string" ? undefined : skill.tool;
+    resolved.add(resolveToolName(skillTool, configTools));
+  }
+
+  if (resolved.size === 0) resolved.add(resolveToolName(undefined, configTools));
+  return [...resolved];
+}
+
+export { getAdapter, resolveConfiguredToolNames, resolveToolName, validateToolName };
 export type { ToolAdapter } from "./types.js";

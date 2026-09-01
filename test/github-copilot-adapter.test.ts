@@ -6,6 +6,7 @@ import { GitHubCopilotAdapter } from "../src/tools/github-copilot.js";
 const adapter = new GitHubCopilotAdapter();
 
 const runOpts = {
+  defaultModel: "",
   promptPath: "/tmp/prompt.txt",
   prompt: "Use the review skill.",
 };

@@ -7,6 +7,7 @@ import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 
 import type { SkillsConfig } from "./types.js";
+import { resolveConfiguredToolNames, validateToolName } from "./tools/index.js";
 
 /**
  * Build the environment for the agent-manager CLI invocation.
@@ -40,14 +41,10 @@ function buildInstallEnv(
  * get both.
  */
 function resolveInstallTools(configTools: unknown, skills?: SkillsConfig["skills"]): string[] {
-  const fromConfig = Array.isArray(configTools) ? configTools : typeof configTools === "string" ? [configTools] : [];
-  const fromSkills = (skills ?? []).map((skill) =>
-    typeof skill === "object" && skill !== null ? skill.tool : undefined,
-  );
-  const declared = [...fromConfig, ...fromSkills].filter((t): t is string => typeof t === "string");
-
-  const needsPiDir = declared.includes("pi");
-  const needsClaudeDir = declared.some((t) => t === "claude-code" || t === "github-copilot") || !needsPiDir;
+  const tools = resolveConfiguredToolNames(configTools, skills);
+  tools.forEach((tool) => validateToolName(tool, "tools configuration"));
+  const needsPiDir = tools.includes("pi");
+  const needsClaudeDir = tools.some((tool) => tool === "claude-code" || tool === "github-copilot");
 
   const installTools: string[] = [];
   if (needsClaudeDir) installTools.push("claude-code");

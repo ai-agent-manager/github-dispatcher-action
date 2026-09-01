@@ -11,6 +11,8 @@ import type { MatchedSkill } from "../types.js";
 export interface ToolRunOptions {
   /** The matched skill being run — adapters can read any field. */
   skill: MatchedSkill;
+  /** Shared default model. Per-skill configuration takes precedence. */
+  defaultModel: string;
   /** Absolute path to a file containing the full prompt text. */
   promptPath: string;
   /** Prompt text passed as a CLI argument (Claude Code / Copilot). */

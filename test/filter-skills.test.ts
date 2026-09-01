@@ -85,6 +85,15 @@ test("resolves tool from config.tools[0] when skill has no tool field", () => {
   assert.strictEqual(matched[0]?.tool, "github-copilot");
 });
 
+test("resolves tool from a scalar config.tools value", () => {
+  const config = {
+    tools: "pi",
+    skills: [{ name: "s1", on: ["pull_request.opened"] }],
+  };
+  const matched = filterSkills(config, "pull_request", "opened");
+  assert.strictEqual(matched[0]?.tool, "pi");
+});
+
 test("defaults to claude-code when neither skill.tool nor config.tools is set", () => {
   const config = {
     skills: [{ name: "s1", on: ["pull_request.opened"] }],
@@ -114,10 +123,7 @@ test("throws on invalid tool in skill.tool field", () => {
   const config = {
     skills: [{ name: "s1", on: ["pull_request.opened"], tool: "invalid-tool" }],
   };
-  assert.throws(
-    () => filterSkills(config, "pull_request", "opened"),
-    /Unknown tool "invalid-tool" in skill "s1"/
-  );
+  assert.throws(() => filterSkills(config, "pull_request", "opened"), /Unknown tool "invalid-tool" in skill "s1"/);
 });
 
 test("throws on invalid tool in config.tools[0]", () => {
@@ -125,8 +131,5 @@ test("throws on invalid tool in config.tools[0]", () => {
     tools: ["typo-tool"],
     skills: [{ name: "s1", on: ["pull_request.opened"] }],
   };
-  assert.throws(
-    () => filterSkills(config, "pull_request", "opened"),
-    /Unknown tool "typo-tool" in config\.tools\[0\]/
-  );
+  assert.throws(() => filterSkills(config, "pull_request", "opened"), /Unknown tool "typo-tool" in config\.tools\[0\]/);
 });

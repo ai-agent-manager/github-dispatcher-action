@@ -5,11 +5,10 @@ import type { MatchedSkill } from "../types.js";
  * Pinned pi gateway provider (`pi -e`). Keep in sync with
  * `@earendil-works/pi-coding-agent` in the Dockerfile — 2.0.5 needs pi >= 0.81.0.
  */
-const PI_GATEWAY_EXTENSION = "npm:pi-provider-litellm@2.0.5";
+const PI_GATEWAY_EXTENSION = "/usr/local/lib/node_modules/pi-provider-litellm/dist/index.js";
 
 export class PiAdapter implements ToolAdapter {
   readonly name = "pi";
-  private defaultModel = "";
 
   applyEnv(inputs: ToolEnvInputs): void {
     const baseUrl = inputs.gatewayBaseUrl.trim();
@@ -31,11 +30,10 @@ export class PiAdapter implements ToolAdapter {
     process.env.LITELLM_BASE_URL = baseUrl.replace(/\/+$/, "");
     process.env.LITELLM_API_KEY = apiKey;
     process.env.PI_TELEMETRY = "0";
-    this.defaultModel = inputs.defaultModel.trim();
   }
 
   buildCommand(options: ToolRunOptions): string[] {
-    const model = options.skill.model?.trim() || this.defaultModel;
+    const model = options.skill.model?.trim() || options.defaultModel.trim();
     const argv = [
       "pi",
       "-e",

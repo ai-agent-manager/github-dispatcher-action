@@ -149,7 +149,7 @@ See also `examples/04-ai-skills-copilot-uc2.yml`.
 
 pi routes model calls through the configured gateway. Print mode has no budget or iteration cap.
 
-The action pins both `@earendil-works/pi-coding-agent` (Dockerfile, currently `0.84.1`) and `npm:pi-provider-litellm@2.0.5` (`src/tools/pi.ts`). Bump them together — `2.0.5` requires pi `>= 0.81.0`.
+The action image pins both `@earendil-works/pi-coding-agent` (currently `0.84.1`) and `pi-provider-litellm` (currently `2.0.5`). Pi loads the provider from the image instead of downloading it at runtime. Bump both packages together because provider `2.0.5` requires pi `>= 0.81.0`.
 
 ```yaml
 # .github/ai-skills.yml
@@ -192,11 +192,15 @@ See also `examples/03b-ai-skills-mixed-tools.yml`.
 | `github-token`        | yes      | —                       | Token used to post PR comments and edit PR descriptions.                 |
 | `copilot-token`       | no       | —                       | Optional Copilot PAT override when mixing gateway + Copilot.             |
 
-For v2 migration, the deprecated `anthropic-*`, `litellm-*`, and `pi-model` inputs remain accepted. Canonical `gateway-*` and `default-model` values take precedence when both forms are set.
+### Migrating to v2
+
+Version 2 is a direct configuration break. It supports only `gateway-base-url`, `gateway-api-key`, and `default-model` for model access. The v1 `anthropic-*`, `litellm-*`, and `pi-model` inputs are not accepted and have no compatibility aliases in v2. Workflows that still use the v1 input model must remain pinned to v1 until they migrate.
 
 ### Authenticated bundle servers
 
 If your bundle server's discovery document declares `auth.required`, set `bundle-access-token` to a valid bearer token (e.g. from a repo or environment secret, or minted via a client-credentials flow in an earlier workflow step). The runner cannot complete agent-manager's interactive browser login, so without a token the install step fails.
+
+The GitHub Environment can have any name. If its secret uses agent-manager's standard `AGENTMAN_ACCESS_TOKEN` name, map that secret to the action input explicitly:
 
 ```yaml
 with:

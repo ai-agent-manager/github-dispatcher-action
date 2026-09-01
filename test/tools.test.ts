@@ -1,7 +1,7 @@
 import assert from "node:assert";
 import test from "node:test";
 
-import { getAdapter, resolveToolName, validateToolName } from "../src/tools/index.js";
+import { getAdapter, resolveConfiguredToolNames, resolveToolName, validateToolName } from "../src/tools/index.js";
 
 // Registry tests
 test("getAdapter returns ClaudeCodeAdapter for 'claude-code'", () => {
@@ -33,6 +33,10 @@ test("resolveToolName falls back to config.tools[0]", () => {
   assert.strictEqual(resolveToolName(undefined, ["github-copilot"]), "github-copilot");
 });
 
+test("resolveToolName supports a scalar tools value", () => {
+  assert.strictEqual(resolveToolName(undefined, "pi"), "pi");
+});
+
 test("resolveToolName does not treat agents as a runtime harness", () => {
   assert.strictEqual(resolveToolName("agents", ["claude-code"]), "agents");
   assert.throws(() => validateToolName("agents", "config.tools[0]"), /Unknown tool "agents"/);
@@ -50,6 +54,13 @@ test("resolveToolName handles empty tools array", () => {
 test("resolveToolName handles non-string tools[0]", () => {
   assert.strictEqual(resolveToolName(undefined, [42]), "claude-code");
   assert.strictEqual(resolveToolName(undefined, [null]), "claude-code");
+});
+
+test("resolveConfiguredToolNames includes implicit defaults and per-skill overrides", () => {
+  assert.deepStrictEqual(
+    resolveConfiguredToolNames(undefined, [{ name: "pi-skill", tool: "pi" }, { name: "default-skill" }]),
+    ["pi", "claude-code"],
+  );
 });
 
 // validateToolName tests

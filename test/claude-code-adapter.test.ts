@@ -6,6 +6,7 @@ import { ClaudeCodeAdapter } from "../src/tools/claude-code.js";
 const adapter = new ClaudeCodeAdapter();
 
 const runOpts = {
+  defaultModel: "",
   promptPath: "/tmp/prompt.txt",
   prompt: "Use the review skill.",
 };
