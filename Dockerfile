@@ -8,7 +8,17 @@ RUN apk add --no-cache git github-cli
 # Pinned versions — update deliberately and test before bumping.
 # pi-coding-agent and pi-provider-litellm are image-pinned together.
 # Provider 2.3.0 requires pi >= 0.81.0.
-RUN npm install -g @anthropic-ai/claude-code@2.1.212 @github/copilot@1.0.71 @earendil-works/pi-coding-agent@0.84.4 pi-provider-litellm@2.3.0
+# The adapter loads pi-provider-litellm from npm's default /usr/local prefix.
+# Keep --legacy-peer-deps: pi loads the provider with its own bundled packages,
+# so npm must not add a second, floating copy of the provider's peer packages.
+RUN npm install --global --legacy-peer-deps \
+            @anthropic-ai/claude-code@2.1.212 \
+            @github/copilot@1.0.71 \
+            @earendil-works/pi-coding-agent@0.84.4 \
+            pi-provider-litellm@2.3.0 && \
+        test -f /usr/local/lib/node_modules/pi-provider-litellm/dist/index.js && \
+        pi --version && \
+        node --input-type=module -e "console.log(import.meta.resolve('/usr/local/lib/node_modules/pi-provider-litellm/dist/index.js'))"
 
 COPY . /src
 WORKDIR /src
