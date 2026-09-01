@@ -15,7 +15,6 @@ const emptyEnv = {
   gatewayBaseUrl: "",
   gatewayApiKey: "",
   defaultModel: "",
-  githubToken: "ghs_xxx",
   copilotTokenOverride: "",
 };
 
@@ -87,39 +86,24 @@ test("formatBudgetWarning uses default iteration count when not set", () => {
   assert.ok(warning.includes("10"));
 });
 
-// --- applyEnv failure modes ---
+// --- buildEnv failure modes ---
 
-test("applyEnv throws when gateway-api-key and copilot override are missing", () => {
-  assert.throws(() => adapter.applyEnv(emptyEnv), /gateway-api-key \(or copilot-token override\) is required/);
+test("buildEnv throws when gateway-api-key and copilot override are missing", () => {
+  assert.throws(() => adapter.buildEnv(emptyEnv, {}), /gateway-api-key \(or copilot-token override\) is required/);
 });
 
-test("applyEnv uses gateway-api-key as COPILOT_GITHUB_TOKEN when no override", () => {
-  const orig = process.env.COPILOT_GITHUB_TOKEN;
-  try {
-    adapter.applyEnv({
-      ...emptyEnv,
-      gatewayApiKey: "github_pat_shared",
-    });
-    assert.strictEqual(process.env.COPILOT_GITHUB_TOKEN, "github_pat_shared");
-  } finally {
-    if (orig === undefined) delete process.env.COPILOT_GITHUB_TOKEN;
-    else process.env.COPILOT_GITHUB_TOKEN = orig;
-  }
+test("buildEnv uses gateway-api-key as COPILOT_GITHUB_TOKEN when no override", () => {
+  const environment = adapter.buildEnv({ ...emptyEnv, gatewayApiKey: "github_pat_shared" }, {});
+  assert.strictEqual(environment.COPILOT_GITHUB_TOKEN, "github_pat_shared");
 });
 
-test("applyEnv prefers copilot-token override over gateway-api-key", () => {
-  const orig = process.env.COPILOT_GITHUB_TOKEN;
-  try {
-    adapter.applyEnv({
-      ...emptyEnv,
-      gatewayApiKey: "gateway-key",
-      copilotTokenOverride: "github_pat_override",
-    });
-    assert.strictEqual(process.env.COPILOT_GITHUB_TOKEN, "github_pat_override");
-  } finally {
-    if (orig === undefined) delete process.env.COPILOT_GITHUB_TOKEN;
-    else process.env.COPILOT_GITHUB_TOKEN = orig;
-  }
+test("buildEnv prefers copilot-token override over gateway-api-key", () => {
+  const environment = adapter.buildEnv({
+    ...emptyEnv,
+    gatewayApiKey: "gateway-key",
+    copilotTokenOverride: "github_pat_override",
+  }, {});
+  assert.strictEqual(environment.COPILOT_GITHUB_TOKEN, "github_pat_override");
 });
 
 // --- detectBudgetHit ---

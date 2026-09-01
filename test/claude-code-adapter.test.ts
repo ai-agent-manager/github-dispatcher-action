@@ -15,7 +15,6 @@ const emptyEnv = {
   gatewayBaseUrl: "",
   gatewayApiKey: "",
   defaultModel: "",
-  githubToken: "ghs_xxx",
   copilotTokenOverride: "",
 };
 
@@ -101,32 +100,21 @@ test("formatBudgetWarning uses default budget when not set", () => {
   assert.ok(warning.includes("$5"));
 });
 
-// --- applyEnv failure modes ---
+// --- buildEnv failure modes ---
 
-test("applyEnv throws when gateway-api-key is missing", () => {
-  assert.throws(() => adapter.applyEnv(emptyEnv), /gateway-api-key is required/);
+test("buildEnv throws when gateway-api-key is missing", () => {
+  assert.throws(() => adapter.buildEnv(emptyEnv, {}), /gateway-api-key is required/);
 });
 
-test("applyEnv maps gateway inputs to ANTHROPIC_* env vars", () => {
-  const origToken = process.env.ANTHROPIC_AUTH_TOKEN;
-  const origBase = process.env.ANTHROPIC_BASE_URL;
-  const origModel = process.env.ANTHROPIC_MODEL;
-  try {
-    adapter.applyEnv({
-      ...emptyEnv,
-      gatewayApiKey: "sk-ant-test123",
-      gatewayBaseUrl: "https://gateway.example.com",
-      defaultModel: "opusplan",
-    });
-    assert.strictEqual(process.env.ANTHROPIC_AUTH_TOKEN, "sk-ant-test123");
-    assert.strictEqual(process.env.ANTHROPIC_BASE_URL, "https://gateway.example.com");
-    assert.strictEqual(process.env.ANTHROPIC_MODEL, "opusplan");
-  } finally {
-    if (origToken === undefined) delete process.env.ANTHROPIC_AUTH_TOKEN;
-    else process.env.ANTHROPIC_AUTH_TOKEN = origToken;
-    if (origBase === undefined) delete process.env.ANTHROPIC_BASE_URL;
-    else process.env.ANTHROPIC_BASE_URL = origBase;
-    if (origModel === undefined) delete process.env.ANTHROPIC_MODEL;
-    else process.env.ANTHROPIC_MODEL = origModel;
-  }
+test("buildEnv maps gateway inputs to an isolated ANTHROPIC_* environment", () => {
+  const environment = adapter.buildEnv({
+    ...emptyEnv,
+    gatewayApiKey: "sk-ant-test123",
+    gatewayBaseUrl: "https://gateway.example.com",
+    defaultModel: "opusplan",
+  }, { PATH: "/usr/bin" });
+  assert.strictEqual(environment.ANTHROPIC_AUTH_TOKEN, "sk-ant-test123");
+  assert.strictEqual(environment.ANTHROPIC_BASE_URL, "https://gateway.example.com");
+  assert.strictEqual(environment.ANTHROPIC_MODEL, "opusplan");
+  assert.strictEqual(environment.PATH, "/usr/bin");
 });

@@ -1,4 +1,4 @@
-import type { ToolAdapter, ToolRunOptions, ToolEnvInputs, BudgetHitResult } from "./types.js";
+import type { ToolAdapter, ToolRunOptions, ToolEnvInputs, ToolEnvironment, BudgetHitResult } from "./types.js";
 import type { MatchedSkill } from "../types.js";
 
 // Claude Code signals budget exhaustion by exiting 0 with this string
@@ -10,7 +10,7 @@ const DEFAULT_BUDGET_USD = 5;
 export class ClaudeCodeAdapter implements ToolAdapter {
   readonly name = "claude-code";
 
-  applyEnv(inputs: ToolEnvInputs): void {
+  buildEnv(inputs: ToolEnvInputs, baseEnv: ToolEnvironment): ToolEnvironment {
     if (!inputs.gatewayApiKey) {
       throw new Error(
         "gateway-api-key is required when using claude-code tools. " +
@@ -19,19 +19,21 @@ export class ClaudeCodeAdapter implements ToolAdapter {
     }
 
     // Last-mile vendor mapping — Claude Code reads ANTHROPIC_* env vars.
-    process.env.ANTHROPIC_AUTH_TOKEN = inputs.gatewayApiKey;
+    const environment: ToolEnvironment = {
+      ...baseEnv,
+      ANTHROPIC_AUTH_TOKEN: inputs.gatewayApiKey,
+      DISABLE_NON_ESSENTIAL_MODEL_CALLS: "1",
+      DISABLE_TELEMETRY: "1",
+      CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
+      CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS: "1",
+    };
     if (inputs.gatewayBaseUrl) {
-      process.env.ANTHROPIC_BASE_URL = inputs.gatewayBaseUrl;
+      environment.ANTHROPIC_BASE_URL = inputs.gatewayBaseUrl;
     }
     if (inputs.defaultModel) {
-      process.env.ANTHROPIC_MODEL = inputs.defaultModel;
+      environment.ANTHROPIC_MODEL = inputs.defaultModel;
     }
-
-    // Lock down telemetry and experimental features for predictable runs.
-    process.env.DISABLE_NON_ESSENTIAL_MODEL_CALLS = "1";
-    process.env.DISABLE_TELEMETRY = "1";
-    process.env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1";
-    process.env.CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS = "1";
+    return environment;
   }
 
   buildCommand(options: ToolRunOptions): string[] {
