@@ -3,7 +3,7 @@ import type { MatchedSkill } from "../types.js";
 
 /**
  * Pinned pi gateway provider (`pi -e`). Keep in sync with
- * `@earendil-works/pi-coding-agent` in the Dockerfile — 2.0.5 needs pi >= 0.81.0.
+ * `@earendil-works/pi-coding-agent` in the Dockerfile — 2.3.0 needs pi >= 0.81.0.
  */
 const PI_GATEWAY_EXTENSION = "/usr/local/lib/node_modules/pi-provider-litellm/dist/index.js";
 

@@ -149,7 +149,7 @@ See also `examples/04-ai-skills-copilot-uc2.yml`.
 
 pi routes model calls through the configured gateway. Print mode has no budget or iteration cap.
 
-The action image pins both `@earendil-works/pi-coding-agent` (currently `0.84.1`) and `pi-provider-litellm` (currently `2.0.5`). Pi loads the provider from the image instead of downloading it at runtime. Bump both packages together because provider `2.0.5` requires pi `>= 0.81.0`.
+The action image pins both `@earendil-works/pi-coding-agent` (currently `0.84.4`) and `pi-provider-litellm` (currently `2.3.0`). Pi loads the provider from the image instead of downloading it at runtime. Bump both packages together because provider `2.3.0` requires pi `>= 0.81.0`.
 
 ```yaml
 # .github/ai-skills.yml
