@@ -1,6 +1,6 @@
 {
   "name": "@ai-agent-manager/github-dispatcher-action",
-  "version": "1.3.1",
+  "version": "2.0.0",
   "description": "GitHub Action that dispatches AI agent skills against pull request events.",
   "private": true,
   "type": "module",
