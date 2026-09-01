@@ -88,17 +88,20 @@ test("buildCommand loads the gateway extension and installed skill path", () => 
   assert.strictEqual(cmd.at(-1), `@${runOpts.promptPath}`);
 });
 
-test("buildCommand omits --model when none is configured", () => {
+test("buildCommand throws before launch when no model is configured", () => {
   const fresh = new PiAdapter();
-  const cmd = fresh.buildCommand({
-    ...runOpts,
-    skill: {
-      name: "review",
-      autonomy: "observe",
-      trigger: "pull_request.opened",
-      tool: "pi",
-    },
-  });
 
-  assert.ok(!cmd.includes("--model"));
+  assert.throws(
+    () =>
+      fresh.buildCommand({
+        ...runOpts,
+        skill: {
+          name: "review",
+          autonomy: "observe",
+          trigger: "pull_request.opened",
+          tool: "pi",
+        },
+      }),
+    /A model is required when using pi for skill "review"\. Set the skill model or the default-model input\./,
+  );
 });

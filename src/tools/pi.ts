@@ -34,6 +34,12 @@ export class PiAdapter implements ToolAdapter {
 
   buildCommand(options: ToolRunOptions): string[] {
     const model = options.skill.model?.trim() || options.defaultModel.trim();
+    if (!model) {
+      throw new Error(
+        `A model is required when using pi for skill "${options.skill.name}". ` +
+          "Set the skill model or the default-model input.",
+      );
+    }
     const argv = [
       "pi",
       "-e",
@@ -47,9 +53,7 @@ export class PiAdapter implements ToolAdapter {
       `.agents/skills/${options.skill.name}`,
       `@${options.promptPath}`,
     ];
-    if (model) {
-      argv.splice(argv.indexOf("--skill"), 0, "--model", model);
-    }
+    argv.splice(argv.indexOf("--skill"), 0, "--model", model);
     return argv;
   }
 
