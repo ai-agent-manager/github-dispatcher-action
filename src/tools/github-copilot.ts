@@ -34,7 +34,9 @@ export class GitHubCopilotAdapter implements ToolAdapter {
     return [
       "copilot",
       "-p",
-      options.prompt,
+      `Use the ${options.skill.name} skill. Use the attached prompt as your task.`,
+      "--attachment",
+      options.promptPath,
       "--autopilot",
       "--yolo",
       "--max-autopilot-continues",
