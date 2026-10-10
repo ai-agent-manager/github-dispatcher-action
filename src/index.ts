@@ -13,7 +13,7 @@ import { installSkills } from "./install.js";
 import { parseCommand } from "./parse-command.js";
 import { resolveGatewayInputs } from "./resolve-gateway-inputs.js";
 import type { EventPayload } from "./types.js";
-import { getAdapter } from "./tools/index.js";
+import { getAdapter, validateToolCredentials } from "./tools/index.js";
 
 interface ActionInputs {
   configPath: string;
@@ -95,12 +95,14 @@ async function run(): Promise<void> {
     }
 
     // 3. Apply tool-specific env vars.
+    const toolNames = [...new Set(matched.map((s) => s.tool))];
+    validateToolCredentials(toolNames, gateway.copilotTokenOverride);
+
     // GH_TOKEN is needed by all tools (for gh CLI) — set it once.
     process.env.GH_TOKEN = inputs.githubToken;
 
     // Determine unique tools from matched skills and apply their env.
     // Adapters receive gateway-shaped inputs and map to vendor env vars.
-    const toolNames = [...new Set(matched.map((s) => s.tool))];
     for (const toolName of toolNames) {
       const adapter = getAdapter(toolName);
       adapter.applyEnv({
