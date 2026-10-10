@@ -1,4 +1,4 @@
-import type { ToolAdapter, ToolRunOptions, ToolEnvInputs, BudgetHitResult } from "./types.js";
+import type { ToolAdapter, ToolRunOptions, ToolEnvInputs, ToolEnvironment, BudgetHitResult } from "./types.js";
 import type { MatchedSkill } from "../types.js";
 
 const DEFAULT_MAX_ITERATIONS = 10;
@@ -11,7 +11,7 @@ const ITERATION_LIMIT_PATTERN = /reached maximum number of continuations/i;
 export class GitHubCopilotAdapter implements ToolAdapter {
   readonly name = "github-copilot";
 
-  applyEnv(inputs: ToolEnvInputs): void {
+  buildEnv(inputs: ToolEnvInputs, baseEnv: ToolEnvironment): ToolEnvironment {
     // Prefer explicit Copilot override (mixed gateway + Copilot repos); otherwise
     // reuse the shared gateway-api-key auth hook (PAT for Copilot-only setups).
     const token = inputs.copilotTokenOverride.trim() || inputs.gatewayApiKey.trim();
@@ -26,7 +26,7 @@ export class GitHubCopilotAdapter implements ToolAdapter {
     }
 
     // Last-mile vendor mapping — Copilot CLI checks COPILOT_GITHUB_TOKEN first.
-    process.env.COPILOT_GITHUB_TOKEN = token;
+    return { ...baseEnv, COPILOT_GITHUB_TOKEN: token };
   }
 
   buildCommand(options: ToolRunOptions): string[] {

@@ -14,25 +14,23 @@ const emptyEnv = {
   gatewayBaseUrl: "",
   gatewayApiKey: "",
   defaultModel: "",
-  githubToken: "",
   copilotTokenOverride: "",
 };
 
-test("applyEnv maps gateway credentials for the pinned pi provider extension", () => {
-  const prevBase = process.env.LITELLM_BASE_URL;
-  const prevKey = process.env.LITELLM_API_KEY;
-  const prevTelemetry = process.env.PI_TELEMETRY;
+test("buildEnv maps gateway credentials for the pinned pi provider extension", () => {
+  const environment = adapter.buildEnv(
+    {
+      ...emptyEnv,
+      gatewayBaseUrl: "https://gateway.example.com/",
+      gatewayApiKey: "sk-example-gateway-key",
+      defaultModel: "claude-sonnet-4-6",
+    },
+    { PATH: "/usr/bin" },
+  );
 
-  adapter.applyEnv({
-    ...emptyEnv,
-    gatewayBaseUrl: "https://gateway.example.com/",
-    gatewayApiKey: "sk-example-gateway-key",
-    defaultModel: "claude-sonnet-4-6",
-  });
-
-  assert.strictEqual(process.env.LITELLM_BASE_URL, "https://gateway.example.com");
-  assert.strictEqual(process.env.LITELLM_API_KEY, "sk-example-gateway-key");
-  assert.strictEqual(process.env.PI_TELEMETRY, "0");
+  assert.strictEqual(environment.LITELLM_BASE_URL, "https://gateway.example.com");
+  assert.strictEqual(environment.LITELLM_API_KEY, "sk-example-gateway-key");
+  assert.strictEqual(environment.PI_TELEMETRY, "0");
 
   const cmd = adapter.buildCommand({
     ...runOpts,
@@ -45,22 +43,18 @@ test("applyEnv maps gateway credentials for the pinned pi provider extension", (
     },
   });
   assert.strictEqual(cmd[cmd.indexOf("--model") + 1], "claude-sonnet-4-6");
-
-  if (prevBase === undefined) delete process.env.LITELLM_BASE_URL;
-  else process.env.LITELLM_BASE_URL = prevBase;
-  if (prevKey === undefined) delete process.env.LITELLM_API_KEY;
-  else process.env.LITELLM_API_KEY = prevKey;
-  if (prevTelemetry === undefined) delete process.env.PI_TELEMETRY;
-  else process.env.PI_TELEMETRY = prevTelemetry;
 });
 
-test("applyEnv throws when gateway-base-url is missing", () => {
+test("buildEnv throws when gateway-base-url is missing", () => {
   assert.throws(
     () =>
-      adapter.applyEnv({
-        ...emptyEnv,
-        gatewayApiKey: "key",
-      }),
+      adapter.buildEnv(
+        {
+          ...emptyEnv,
+          gatewayApiKey: "key",
+        },
+        {},
+      ),
     /gateway-base-url is required/,
   );
 });

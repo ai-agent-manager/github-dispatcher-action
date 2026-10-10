@@ -1,29 +1,52 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { execFileSync, execSync } from "node:child_process";
+import { execSync, spawn } from "node:child_process";
 
 import * as core from "@actions/core";
 
 import type { MatchedSkill } from "./types.js";
-import type { ToolRunResult } from "./tools/types.js";
+import type { ToolEnvironment, ToolRunResult } from "./tools/types.js";
 import { getAdapter } from "./tools/index.js";
 
-interface ExecSyncError extends Error {
-  status?: number | null;
-  signal?: NodeJS.Signals | null;
-  stdout?: Buffer | string;
-  stderr?: Buffer | string;
-}
-
-type ExecuteCommand = typeof execFileSync;
-type ReportError = (_message: string) => void;
-
+const MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
+const DETECTION_TAIL_BYTES = 64 * 1024;
 const MAX_DIAGNOSTIC_STDERR_LENGTH = 1_000;
 
-function formatExecutionFailure(error: ExecSyncError, prompt: string, diff: string): string {
-  const exitDetail = error.signal ? `signal ${error.signal}` : `exit status ${error.status ?? "unknown"}`;
-  const stderr = error.stderr?.toString().trim();
+interface CommandResult {
+  stdout: string;
+  stderr: string;
+  stdoutForDetection: string;
+  stderrForDetection: string;
+  outputTruncated: boolean;
+  exitCode: number | null;
+  signal: NodeJS.Signals | null;
+}
+
+type ExecuteCommand = (
+  _bin: string,
+  _args: string[],
+  _input?: string,
+  _environment?: ToolEnvironment,
+) => Promise<CommandResult>;
+type ReportError = (_message: string) => void;
+
+function retainOutput(current: Buffer, chunk: Buffer, limit: number): Buffer {
+  if (current.length >= limit) {
+    return current;
+  }
+
+  return Buffer.concat([current, chunk.subarray(0, limit - current.length)]);
+}
+
+function retainTail(current: Buffer, chunk: Buffer): Buffer {
+  const combined = Buffer.concat([current, chunk]);
+  return combined.subarray(Math.max(0, combined.length - DETECTION_TAIL_BYTES));
+}
+
+function formatExecutionFailure(result: CommandResult, prompt: string, diff: string): string {
+  const exitDetail = result.signal ? `signal ${result.signal}` : `exit status ${result.exitCode ?? "unknown"}`;
+  const stderr = result.stderr.trim();
 
   if (!stderr) {
     return exitDetail;
@@ -38,6 +61,50 @@ function formatExecutionFailure(error: ExecSyncError, prompt: string, diff: stri
   return `${exitDetail}: ${sanitisedStderr.slice(0, MAX_DIAGNOSTIC_STDERR_LENGTH)} [truncated]`;
 }
 
+function executeCommand(bin: string, args: string[], input?: string, environment?: ToolEnvironment): Promise<CommandResult> {
+  return new Promise((resolve, reject) => {
+    // stdin stays a pipe for every tool: claude-code receives the prompt on it
+    // and the other tools get an immediate EOF. Never "inherit" — claude-code
+    // would block reading the runner's stdin.
+    // environment is the tool's credential-isolated env; undefined inherits process.env.
+    const child = spawn(bin, args, { stdio: ["pipe", "pipe", "pipe"], env: environment });
+    let stdout: Buffer<ArrayBufferLike> = Buffer.alloc(0);
+    let stderr: Buffer<ArrayBufferLike> = Buffer.alloc(0);
+    let stdoutTail: Buffer<ArrayBufferLike> = Buffer.alloc(0);
+    let stderrTail: Buffer<ArrayBufferLike> = Buffer.alloc(0);
+    let outputTruncated = false;
+
+    child.stdout.on("data", (chunk: Buffer) => {
+      outputTruncated ||= stdout.length + chunk.length > MAX_OUTPUT_BYTES;
+      stdout = retainOutput(stdout, chunk, MAX_OUTPUT_BYTES);
+      stdoutTail = retainTail(stdoutTail, chunk);
+    });
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr = retainOutput(stderr, chunk, MAX_OUTPUT_BYTES);
+      stderrTail = retainTail(stderrTail, chunk);
+    });
+    // A tool that exits before draining stdin would otherwise surface EPIPE.
+    child.stdin.on("error", () => {});
+    child.on("error", reject);
+    child.on("close", (exitCode, signal) => {
+      resolve({
+        stdout: stdout.toString("utf-8"),
+        stderr: stderr.toString("utf-8"),
+        stdoutForDetection: Buffer.concat([stdout, stdoutTail]).toString("utf-8"),
+        stderrForDetection: Buffer.concat([stderr, stderrTail]).toString("utf-8"),
+        outputTruncated,
+        exitCode,
+        signal,
+      });
+    });
+
+    if (input !== undefined) {
+      child.stdin.write(input);
+    }
+    child.stdin.end();
+  });
+}
+
 /**
  * Run an AI tool in headless mode against a single skill, returning the
  * skill's output plus a flag indicating whether the budget/iteration cap was hit.
@@ -45,13 +112,14 @@ function formatExecutionFailure(error: ExecSyncError, prompt: string, diff: stri
  * If the skill genuinely fails (network, etc.) we return null so the caller
  * can skip it without poisoning the rest of the run.
  */
-function runSkill(
+async function runSkill(
   skill: MatchedSkill,
   diff: string,
   defaultModel = "",
-  executeCommand: ExecuteCommand = execFileSync,
+  runCommand: ExecuteCommand = executeCommand,
   reportError: ReportError = core.error,
-): ToolRunResult | null {
+  environment: ToolEnvironment = process.env,
+): Promise<ToolRunResult | null> {
   const adapter = getAdapter(skill.tool);
   const prompt = `Use the ${skill.name} skill. Here is the diff: ${diff}`;
   const promptDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "ai-skill-"));
@@ -59,7 +127,8 @@ function runSkill(
   fs.writeFileSync(promptPath, prompt);
 
   let output: string;
-  let budgetHit = false;
+  let budgetHit: boolean;
+  let outputTruncated: boolean;
 
   try {
     const argv = adapter.buildCommand({ skill, defaultModel, promptPath });
@@ -68,41 +137,36 @@ function runSkill(
       throw new Error(`Adapter "${adapter.name}" returned an empty command`);
     }
 
+    let commandResult: CommandResult;
     try {
-      output = executeCommand(bin, args, {
-        encoding: "utf-8",
-        input: skill.tool === "claude-code" ? prompt : undefined,
-        stdio: ["pipe", "pipe", "pipe"],
-      });
+      commandResult = await runCommand(bin, args, skill.tool === "claude-code" ? prompt : undefined, environment);
+    } catch {
+      reportError(`[run] ${skill.name} failed because the tool could not start.`);
+      return null;
+    }
 
-      // Check if budget/iteration limit was hit (tool-specific detection)
-      const result = adapter.detectBudgetHit(output, "");
-      if (result.hit) {
-        budgetHit = true;
-        output = "";
-      }
-    } catch (error) {
-      const execError = error as ExecSyncError;
-      // Defensive — handle a future CLI version that signals budget hit via
-      // non-zero exit + stderr instead of the current "exit 0 + stdout" format.
-      const stdout = execError.stdout?.toString() ?? "";
-      const stderr = execError.stderr?.toString() ?? "";
+    // Check if budget/iteration limit was hit (tool-specific detection). The
+    // detection strings include a rolling tail, so markers printed at the end
+    // of an over-long stream are still seen; markers in the discarded middle
+    // of a stream larger than MAX_OUTPUT_BYTES + DETECTION_TAIL_BYTES are not.
+    budgetHit = adapter.detectBudgetHit(commandResult.stdoutForDetection, commandResult.stderrForDetection).hit;
+    if (commandResult.exitCode !== 0 && !budgetHit) {
+      const detail = formatExecutionFailure(commandResult, prompt, diff);
+      reportError(`[run] ${skill.name} failed because the tool exited unsuccessfully (${detail}).`);
+      return null;
+    }
 
-      const result = adapter.detectBudgetHit(stdout, stderr);
-      if (result.hit) {
-        output = "";
-        budgetHit = true;
-      } else {
-        const detail = formatExecutionFailure(execError, prompt, diff);
-        reportError(`[run] ${skill.name} failed because the tool exited unsuccessfully (${detail}).`);
-        return null;
-      }
+    output = commandResult.stdout;
+    outputTruncated = commandResult.outputTruncated;
+    if (outputTruncated) {
+      output += `\n\n[Output truncated after ${MAX_OUTPUT_BYTES / (1024 * 1024)} MiB; remaining tool output was discarded.]`;
     }
   } finally {
     fs.rmSync(promptDirectory, { recursive: true, force: true });
   }
 
   if (budgetHit) {
+    output = outputTruncated ? `${output}\n\n` : "";
     output += adapter.formatBudgetWarning(skill);
     const budgetDetail =
       skill.tool === "github-copilot"
@@ -120,22 +184,24 @@ function runSkill(
  *   suggest → overwrite the PR description
  *   act     → commit file changes to the PR's source branch
  */
-function postResult(skill: MatchedSkill, output: string, prNumber: number): void {
+function postResult(skill: MatchedSkill, output: string, prNumber: number, githubToken: string): void {
   const outputPath = path.join(os.tmpdir(), "skill-output.txt");
   fs.writeFileSync(outputPath, output);
 
   if (skill.autonomy === "observe") {
     execSync(`gh pr comment ${prNumber} --body-file ${outputPath}`, {
       stdio: "inherit",
+      env: { ...process.env, GH_TOKEN: githubToken },
     });
     core.info(`[run] ✓ ${skill.name} — posted as PR comment`);
   } else if (skill.autonomy === "suggest") {
     execSync(`gh pr edit ${prNumber} --body-file ${outputPath}`, {
       stdio: "inherit",
+      env: { ...process.env, GH_TOKEN: githubToken },
     });
     core.info(`[run] ✓ ${skill.name} — PR description updated`);
   } else if (skill.autonomy === "act") {
-    commitAndPush(skill, prNumber);
+    commitAndPush(skill, prNumber, githubToken);
   } else {
     core.warning(`[run] ${skill.name} has unknown autonomy "${skill.autonomy}" — skipping post`);
   }
@@ -151,7 +217,7 @@ function postResult(skill: MatchedSkill, output: string, prNumber: number): void
  * The commit message includes `[skip ci]` so the resulting push does not
  * re-trigger the dispatcher via `pull_request.synchronize`.
  */
-function commitAndPush(skill: MatchedSkill, prNumber: number): void {
+function commitAndPush(skill: MatchedSkill, prNumber: number, githubToken: string): void {
   // No file changes is a valid no-op — many skills run and conclude there
   // is nothing to update. Avoid an empty commit in that case.
   const status = execSync("git status --porcelain", {
@@ -164,7 +230,10 @@ function commitAndPush(skill: MatchedSkill, prNumber: number): void {
 
   // Resolve the PR's source branch — distinct from the base. This is where
   // we push back. `gh` reads GH_TOKEN from the environment.
-  const branch = execSync(`gh pr view ${prNumber} --json headRefName -q .headRefName`, { encoding: "utf-8" }).trim();
+  const branch = execSync(`gh pr view ${prNumber} --json headRefName -q .headRefName`, {
+    encoding: "utf-8",
+    env: { ...process.env, GH_TOKEN: githubToken },
+  }).trim();
 
   // github-actions[bot] is GitHub's recommended identity for workflow
   // commits. The numeric prefix in the email is the bot account's user ID;
@@ -187,15 +256,24 @@ function commitAndPush(skill: MatchedSkill, prNumber: number): void {
  * Run every matched skill in sequence. Failures of one skill do not stop
  * the others — each skill's success/failure is independent.
  */
-function runAll(matched: MatchedSkill[], diff: string, prNumber: number, defaultModel = ""): void {
+async function runAll(
+  matched: MatchedSkill[],
+  diff: string,
+  prNumber: number,
+  defaultModel = "",
+  toolEnvironments: ReadonlyMap<string, ToolEnvironment> = new Map(),
+  githubToken = "",
+): Promise<void> {
   for (const skill of matched) {
     core.startGroup(`Running: ${skill.name} (autonomy: ${skill.autonomy})`);
-    const result = runSkill(skill, diff, defaultModel);
+    const environment = toolEnvironments.get(skill.tool);
+    if (!environment) throw new Error(`No isolated environment configured for ${skill.tool}`);
+    const result = await runSkill(skill, diff, defaultModel, executeCommand, core.error, environment);
     if (result !== null) {
-      postResult(skill, result.output, prNumber);
+      postResult(skill, result.output, prNumber, githubToken);
     }
     core.endGroup();
   }
 }
 
-export { runSkill, postResult, runAll };
+export { executeCommand, runSkill, postResult, runAll };
