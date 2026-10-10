@@ -8,7 +8,6 @@ const adapter = new ClaudeCodeAdapter();
 const runOpts = {
   defaultModel: "",
   promptPath: "/tmp/prompt.txt",
-  prompt: "Use the review skill.",
 };
 
 const emptyEnv = {
@@ -34,7 +33,7 @@ test("buildCommand uses max_budget_usd from skill", () => {
   assert.ok(cmd.includes("-p"));
   assert.ok(cmd.includes("--dangerously-skip-permissions"));
   assert.strictEqual(cmd[cmd.indexOf("--max-budget-usd") + 1], "10");
-  assert.strictEqual(cmd.at(-1), runOpts.prompt);
+  assert.ok(!cmd.includes(runOpts.promptPath));
 });
 
 test("buildCommand defaults budget to 5", () => {
@@ -63,7 +62,7 @@ test("buildCommand uses the per-skill model when configured", () => {
   });
 
   assert.strictEqual(cmd[cmd.indexOf("--model") + 1], "claude-opus-4-1");
-  assert.strictEqual(cmd.at(-1), runOpts.prompt);
+  assert.ok(!cmd.includes(runOpts.promptPath));
 });
 
 test("detectBudgetHit returns true for budget pattern in stdout", () => {

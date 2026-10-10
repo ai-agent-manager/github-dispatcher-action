@@ -40,7 +40,7 @@ export class ClaudeCodeAdapter implements ToolAdapter {
     if (options.skill.model?.trim()) {
       argv.push("--model", options.skill.model.trim());
     }
-    argv.push(options.prompt);
+    argv.push(`Use the ${options.skill.name} skill. Use the piped prompt as your task.`);
     return argv;
   }
 
