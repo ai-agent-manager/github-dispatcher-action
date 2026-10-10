@@ -1,0 +1,10 @@
+# Keep the build context clean and the image reproducible:
+# host-native node_modules must never leak into the Linux image.
+node_modules/
+dist/
+coverage/
+.git/
+.worktrees/
+.DS_Store
+*.log
+.env*

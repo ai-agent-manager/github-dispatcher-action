@@ -45,4 +45,4 @@ Dockerfile pins the tool CLIs installed into the action image. When bumping pi:
 - `pi-provider-litellm` in the Dockerfile
 - the provider's image-local path in `src/tools/pi.ts`
 
-must stay compatible (`pi-provider-litellm@2.3.0` requires pi `>= 0.81.0`). Update both in the same change and note the versions in the README pi section.
+must stay compatible (`pi-provider-litellm@4.2.0` requires pi `>= 0.99.2`). Update both in the same change and note the versions in the README pi section. Provider 4.x publishes TypeScript source only, so the image-local path points at `src/index.ts`, not `dist/index.js`.
