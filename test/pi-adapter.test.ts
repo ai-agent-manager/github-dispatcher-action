@@ -79,7 +79,7 @@ test("buildCommand loads the gateway extension and installed skill path", () => 
   });
 
   assert.strictEqual(cmd[0], "pi");
-  assert.strictEqual(cmd[cmd.indexOf("-e") + 1], "/usr/local/lib/node_modules/pi-provider-litellm/dist/index.js");
+  assert.strictEqual(cmd[cmd.indexOf("-e") + 1], "/usr/local/lib/node_modules/pi-provider-litellm/src/index.ts");
   assert.strictEqual(cmd[cmd.indexOf("--model") + 1], "gpt-4o");
   assert.strictEqual(cmd[cmd.indexOf("--skill") + 1], ".agents/skills/code-review-backend");
   assert.ok(cmd.includes("-p"));

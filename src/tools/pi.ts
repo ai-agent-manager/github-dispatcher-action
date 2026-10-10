@@ -3,9 +3,11 @@ import type { MatchedSkill } from "../types.js";
 
 /**
  * Pinned pi gateway provider (`pi -e`). Keep in sync with
- * `@earendil-works/pi-coding-agent` in the Dockerfile — 2.3.0 needs pi >= 0.81.0.
+ * `@earendil-works/pi-coding-agent` in the Dockerfile — provider 4.2.0 needs
+ * pi >= 0.99.2 and ships TypeScript source only, so the entry point is
+ * src/index.ts (pi loads it via its bundled jiti transpiler).
  */
-const PI_GATEWAY_EXTENSION = "/usr/local/lib/node_modules/pi-provider-litellm/dist/index.js";
+const PI_GATEWAY_EXTENSION = "/usr/local/lib/node_modules/pi-provider-litellm/src/index.ts";
 
 export class PiAdapter implements ToolAdapter {
   readonly name = "pi";
