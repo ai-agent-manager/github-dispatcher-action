@@ -27,10 +27,10 @@
     "@types/node": "^26.6.5",
     "@vercel/ncc": "^0.45.0",
     "eslint": "^10.12.0",
-    "prettier": "^3.9.9",
+    "prettier": "^3.9.10",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.71.1"
+    "typescript-eslint": "^8.71.2"
   },
   "engines": {
     "node": ">=24"
